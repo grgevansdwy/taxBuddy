@@ -3,7 +3,16 @@ import { Button } from "@/components/ui/button";
 
 export default function LandingPage() {
   return (
-    <div className="flex min-h-screen flex-col bg-background">
+    <div className="relative flex min-h-screen flex-col overflow-hidden bg-background">
+      {/* Decorative background */}
+      <div className="pointer-events-none absolute inset-0 -z-10">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_80%_60%_at_50%_-10%,var(--accent),transparent)]" />
+        <div className="absolute -top-32 -left-32 size-112 rounded-full bg-primary/20 blur-3xl" />
+        <div className="absolute top-1/3 -right-40 size-128 rounded-full bg-chart-3/25 blur-3xl" />
+        <div className="absolute -bottom-40 left-1/4 size-104 rounded-full bg-chart-5/15 blur-3xl" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,var(--border)_1px,transparent_1px),linear-gradient(to_bottom,var(--border)_1px,transparent_1px)] bg-size-[56px_56px] mask-[radial-gradient(ellipse_70%_60%_at_50%_20%,black,transparent)] opacity-40" />
+      </div>
+
       {/* Nav */}
       <header className="flex items-center justify-between px-6 py-5 sm:px-10">
         <span className="text-xl font-bold text-primary tracking-tight">TaxBuddy</span>
@@ -14,21 +23,15 @@ export default function LandingPage() {
 
       {/* Hero */}
       <main className="flex flex-1 flex-col items-center justify-center px-6 text-center">
-        <div className="max-w-xl space-y-6">
-          {/* Badge */}
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-accent px-3 py-1 text-xs font-medium text-accent-foreground">
-            <span className="size-1.5 rounded-full bg-accent-foreground" />
-            Free for students
-          </span>
-
-          <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
-            Your tax refund<br />
-            <span className="text-primary">is waiting.</span>
+        <div className="max-w-3xl space-y-8">
+          <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
+            Most international students<br />
+            use the <span className="text-primary">wrong</span> tax software.
           </h1>
 
-          <p className="text-lg text-muted-foreground leading-relaxed">
-            Most students miss out on hundreds in tax credits.<br className="hidden sm:block" />
-            TaxBuddy finds what you're owed and files it — in minutes.
+          <p className="text-base text-muted-foreground leading-relaxed sm:text-lg">
+            That's why they miss out on tax credits they're owed.<br className="hidden sm:block" />
+            TaxBuddy is built for international students — file it right, in minutes.
           </p>
 
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
@@ -42,19 +45,6 @@ export default function LandingPage() {
                 Sign in
               </Button>
             </Link>
-          </div>
-
-          {/* Trust signals */}
-          <div className="flex flex-wrap items-center justify-center gap-x-6 gap-y-2 pt-2 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <span className="text-primary">✓</span> Takes 5 minutes
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="text-primary">✓</span> 100% free for students
-            </span>
-            <span className="flex items-center gap-1.5">
-              <span className="text-primary">✓</span> Bank-level security
-            </span>
           </div>
         </div>
       </main>
