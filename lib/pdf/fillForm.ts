@@ -24,6 +24,8 @@ export async function fillPdfForm(
     if (entry.type === "text") {
       if (!value) continue;
       form.getTextField(entry.field).setText(value);
+    } else if (entry.type === "checkboxSingle") {
+      if (value === "yes") form.getCheckBox(entry.field).check();
     } else {
       const targetField = value === "yes" ? entry.yesField : entry.noField;
       form.getCheckBox(targetField).check();

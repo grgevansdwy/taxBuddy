@@ -9,7 +9,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-sans" });
 
 export const metadata: Metadata = {
   title: "TaxBuddy — Your student tax refund, sorted",
-  description: "Find and claim the tax refund you're owed as a student. Takes 5 minutes.",
+  description:
+    "Find and claim the tax refund you're owed as a student. Takes < 10 minutes.",
 };
 
 export default function RootLayout({
@@ -18,7 +19,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={cn("h-full antialiased", inter.variable)} suppressHydrationWarning>
+    <html
+      lang="en"
+      className={cn("h-full antialiased", inter.variable)}
+      suppressHydrationWarning
+    >
       <body className="min-h-full flex flex-col">
         <Providers>
           {children}

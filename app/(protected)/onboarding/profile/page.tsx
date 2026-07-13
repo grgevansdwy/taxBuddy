@@ -17,8 +17,8 @@ import { WizardNavRow } from "@/components/onboarding/wizard-nav-row";
 import { CURRENT_SUPPORTED_TAX_YEAR } from "@/lib/config/taxYear";
 import { US_STATES } from "@/lib/config/usStates";
 import { COUNTRIES } from "@/lib/config/countries";
+import { fetchFiling } from "@/lib/client/fetchFiling";
 import type { Address, FilingStatus, ForeignAddress } from "@/lib/types";
-import type { FilingResponse } from "@/app/api/filing/route";
 
 type YesNo = "yes" | "no";
 
@@ -84,9 +84,8 @@ export default function ProfilePage() {
   // Rehydrate from Supabase on mount so back-navigation from a later step
   // doesn't show empty fields for work the user already did.
   useEffect(() => {
-    fetch("/api/filing")
-      .then((res) => res.json())
-      .then((data: FilingResponse) => {
+    fetchFiling()
+      .then((data) => {
         const profile = data.profile;
         if (!profile) return;
 
@@ -126,6 +125,7 @@ export default function ProfilePage() {
           setPriorReturnYear(profile.priorReturn.year ? String(profile.priorReturn.year) : "");
         }
       })
+      .catch((err) => setError(err instanceof Error ? err.message : "Something went wrong."))
       .finally(() => setIsHydrating(false));
   }, []);
 

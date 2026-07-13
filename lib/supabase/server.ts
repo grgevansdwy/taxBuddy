@@ -18,7 +18,9 @@ export async function createClient() {
               cookieStore.set(name, value, options)
             )
           } catch {
-            // called from a Server Component — middleware handles refreshing the session
+            // Called from a Server Component, which can't write cookies — safe to
+            // no-op because middleware.ts already refreshed the session before
+            // this ran, so there's nothing new to persist here.
           }
         },
       },

@@ -15,9 +15,13 @@ export default function LandingPage() {
 
       {/* Nav */}
       <header className="flex items-center justify-between px-6 py-5 sm:px-10">
-        <span className="text-xl font-bold text-primary tracking-tight">TaxBuddy</span>
+        <span className="text-xl font-bold text-primary tracking-tight">
+          TaxBuddy
+        </span>
         <Link href="/login">
-          <Button variant="ghost" size="sm">Sign in</Button>
+          <Button variant="ghost" size="sm">
+            Sign in
+          </Button>
         </Link>
       </header>
 
@@ -25,13 +29,16 @@ export default function LandingPage() {
       <main className="flex flex-1 flex-col items-center justify-center px-6 text-center">
         <div className="max-w-3xl space-y-8">
           <h1 className="text-3xl font-bold tracking-tight text-foreground sm:text-4xl lg:text-5xl">
-            Most international students<br />
+            Most international students
+            <br />
             use the <span className="text-primary">wrong</span> tax software.
           </h1>
 
           <p className="text-base text-muted-foreground leading-relaxed sm:text-lg">
-            That's why they miss out on tax credits they're owed.<br className="hidden sm:block" />
-            TaxBuddy is built for international students — file it right, in minutes.
+            That's why they miss out on tax credits they're owed.
+            <br className="hidden sm:block" />
+            TaxBuddy is built for international students. File it right, in
+            minutes.
           </p>
 
           <div className="flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
@@ -41,7 +48,11 @@ export default function LandingPage() {
               </Button>
             </Link>
             <Link href="/login">
-              <Button variant="outline" size="lg" className="w-full sm:w-auto px-8">
+              <Button
+                variant="outline"
+                size="lg"
+                className="w-full sm:w-auto px-8"
+              >
                 Sign in
               </Button>
             </Link>

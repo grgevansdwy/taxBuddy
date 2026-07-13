@@ -7,9 +7,10 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { WizardShell } from "@/components/onboarding/wizard-shell";
 import { WizardNavRow } from "@/components/onboarding/wizard-nav-row";
+import { CharitableContributionCard } from "@/components/onboarding/charitable-contribution-card";
 import { CURRENT_SUPPORTED_TAX_YEAR } from "@/lib/config/taxYear";
+import { fetchFiling } from "@/lib/client/fetchFiling";
 import type { InterviewAnswers } from "@/lib/types";
-import type { FilingResponse } from "@/app/api/filing/route";
 
 type YesNo = "yes" | "no";
 type ScholarshipCoverage = InterviewAnswers["scholarshipCoverage"];
@@ -27,22 +28,27 @@ export default function InterviewPage() {
   const [dividendIncome, setDividendIncome] = useState(false);
   const [soldAssets, setSoldAssets] = useState(false);
 
+  const [charitableContributions, setCharitableContributions] = useState(0);
+  const [charitableConfirmed, setCharitableConfirmed] = useState(false);
+
   // Rehydrate from Supabase on mount so back-navigation from a later step
   // doesn't show empty fields for work the user already did.
   useEffect(() => {
-    fetch("/api/filing")
-      .then((res) => res.json())
-      .then((data: FilingResponse) => {
+    fetchFiling()
+      .then((data) => {
         const answers = data.interviewAnswers;
-        if (!answers || Object.keys(answers).length === 0) return;
-
-        setWorkedInUs(answers.workedInUs ? "yes" : "no");
-        setOnOPT(answers.onOPT ? "yes" : "no");
-        if (answers.scholarshipCoverage) setScholarshipCoverage(answers.scholarshipCoverage);
-        setInterestIncome(Boolean(answers.interestIncome));
-        setDividendIncome(Boolean(answers.dividendIncome));
-        setSoldAssets(Boolean(answers.soldAssets));
+        if (answers && Object.keys(answers).length > 0) {
+          setWorkedInUs(answers.workedInUs ? "yes" : "no");
+          setOnOPT(answers.onOPT ? "yes" : "no");
+          if (answers.scholarshipCoverage) setScholarshipCoverage(answers.scholarshipCoverage);
+          setInterestIncome(Boolean(answers.interestIncome));
+          setDividendIncome(Boolean(answers.dividendIncome));
+          setSoldAssets(Boolean(answers.soldAssets));
+        }
+        setCharitableContributions(data.charitableContributions ?? 0);
+        setCharitableConfirmed(data.charitableContributionsConfirmed ?? false);
       })
+      .catch((err) => setError(err instanceof Error ? err.message : "Something went wrong."))
       .finally(() => setIsHydrating(false));
   }, []);
 
@@ -153,13 +159,19 @@ export default function InterviewPage() {
           </label>
         </div>
 
+        <CharitableContributionCard
+          initialValue={charitableContributions}
+          wasAlreadySaved={charitableConfirmed}
+          onConfirmed={() => setCharitableConfirmed(true)}
+        />
+
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <WizardNavRow
           step={3}
           onContinue={handleSubmit}
           continueLabel={isSubmitting ? "Working it out..." : "Continue"}
-          disabled={isSubmitting}
+          disabled={isSubmitting || !charitableConfirmed}
         />
       </div>
     </WizardShell>

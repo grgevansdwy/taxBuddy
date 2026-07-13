@@ -33,6 +33,9 @@ yarn-error.log*
 # env files (can opt-in for committing if needed)
 .env*
 
+# real personal tax documents dropped in for local testing — never commit these
+Robinhood Markets Consolidated Form 1099.pdf
+
 # vercel
 .vercel
 

@@ -1,5 +1,5 @@
 import type { EligibilityInput, FilerProfile, ResidencyResult } from "@/lib/types";
-import { formatIsoDateSlashes } from "@/lib/format";
+import { formatIsoDateSlashes, splitLegalName } from "@/lib/format";
 
 // Line 11 (Part III) prints these six years statically on the 2025 revision
 // of the form — re-verify against the new PDF if CURRENT_SUPPORTED_TAX_YEAR
@@ -18,10 +18,7 @@ export function computeForm8843(args: {
 }): Record<string, string> {
   const { profile, residency, eligibilityInput } = args;
 
-  const fullName = profile.legalName?.value?.trim() ?? "";
-  const nameParts = fullName.split(/\s+/).filter(Boolean);
-  const lastName = nameParts.length > 1 ? nameParts[nameParts.length - 1] : "";
-  const firstNameAndInitial = nameParts.length > 1 ? nameParts.slice(0, -1).join(" ") : fullName;
+  const { firstNameAndInitial, lastName } = splitLegalName(profile.legalName?.value);
 
   // ForeignAddress only carries state/postalCode/country today — no
   // street/city field exists yet in the onboarding form (lib/types.ts).

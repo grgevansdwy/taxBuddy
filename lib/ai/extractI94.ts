@@ -4,8 +4,10 @@ import { I94ExtractionSchema, type I94Extraction } from "@/lib/extraction/schema
 
 const SYSTEM_PROMPT =
   "You extract fields from a US CBP I-94 record and travel history for an " +
-  "F-1 student's tax eligibility check. Extract only what's clearly printed " +
-  "in the documents; do not infer or guess a value that isn't visible.";
+  "F-1 student's tax filing — identity fields (name, date of birth, " +
+  "citizenship) plus visa/entry data for the eligibility check. Extract " +
+  "only what's clearly printed in the documents; do not infer or guess a " +
+  "value that isn't visible.";
 
 const EXTRACTION_TOOL = {
   name: "record_i94_extraction",
@@ -14,6 +16,18 @@ const EXTRACTION_TOOL = {
   input_schema: {
     type: "object" as const,
     properties: {
+      legalName: {
+        type: "string",
+        description: "The traveler's full legal name as printed on the I-94.",
+      },
+      dob: {
+        type: "string",
+        description: "Date of birth as printed on the I-94, as ISO yyyy-mm-dd.",
+      },
+      citizenship: {
+        type: "string",
+        description: "Country of citizenship as printed on the I-94.",
+      },
       visaClass: {
         type: "string",
         description: "The nonimmigrant visa/status class shown on the I-94, e.g. 'F-1'.",
@@ -44,7 +58,16 @@ const EXTRACTION_TOOL = {
         description: "Overall confidence (0-1) that every field above was read correctly.",
       },
     },
-    required: ["visaClass", "firstEntryDate", "documentNumber", "travelHistory", "confidence"],
+    required: [
+      "legalName",
+      "dob",
+      "citizenship",
+      "visaClass",
+      "firstEntryDate",
+      "documentNumber",
+      "travelHistory",
+      "confidence",
+    ],
     additionalProperties: false,
   },
   strict: true,

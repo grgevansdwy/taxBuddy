@@ -5,6 +5,9 @@ import { z } from "zod";
 // extractable from the two source documents; the rest of those types is filled in
 // elsewhere (manual input, I-20 extraction, etc.).
 export const I94ExtractionSchema = z.object({
+  legalName: z.string(), // full legal name as printed on the I-94
+  dob: z.string(), // ISO yyyy-mm-dd
+  citizenship: z.string(), // country of citizenship as printed on the I-94
   visaClass: z.string(), // e.g. "F-1"
   firstEntryDate: z.string(), // ISO yyyy-mm-dd
   documentNumber: z.string(),

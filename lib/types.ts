@@ -15,6 +15,11 @@ export type DocType =
   | "f1099int"
   | "f1099b"
   | "f1099div"
+  // The upload checklist asks for one combined document (brokers issue a
+  // single "Consolidated 1099" covering INT/DIV/B sections) — f1099int/b/div
+  // above stay in the union because the extraction routes and F109xData
+  // types are still per-section, just no longer separate upload asks.
+  | "f1099combined"
   | "unknown";
 
 export interface ExtractedField<T> {
@@ -241,6 +246,7 @@ export type FormId =
   | "f8843"
   | "schedA"
   | "schedNEC"
+  | "f8833"
   | "instructionPDF"; // branded cover sheet
 
 export interface ComputedReturn {

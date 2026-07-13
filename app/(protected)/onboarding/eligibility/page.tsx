@@ -23,8 +23,8 @@ import { FileDropSlot } from "@/components/onboarding/file-drop-slot";
 import { CURRENT_SUPPORTED_TAX_YEAR } from "@/lib/config/taxYear";
 import { EXTRACTION_CONFIDENCE_THRESHOLD } from "@/lib/config/extraction";
 import { formatIsoDate } from "@/lib/format";
+import { fetchFiling } from "@/lib/client/fetchFiling";
 import type { I94Extraction } from "@/lib/extraction/schemas/i94";
-import type { FilingResponse } from "@/app/api/filing/route";
 
 type SubStep = "upload" | "confirm" | "blocked";
 type YesNo = "yes" | "no";
@@ -50,7 +50,8 @@ export default function EligibilityPage() {
   const [hadEarlierFJMQVisa, setHadEarlierFJMQVisa] = useState<YesNo>("no");
   const [hasGreenCard, setHasGreenCard] = useState<YesNo>("no");
   const [appliedForGreenCard, setAppliedForGreenCard] = useState<YesNo>("no");
-  const [appliedForGreenCardExplanation, setAppliedForGreenCardExplanation] = useState("");
+  const [appliedForGreenCardExplanation, setAppliedForGreenCardExplanation] =
+    useState("");
   const [reasoning, setReasoning] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -58,9 +59,8 @@ export default function EligibilityPage() {
   // Rehydrate from Supabase on mount so back-navigation from a later step
   // doesn't show empty fields for work the user already did.
   useEffect(() => {
-    fetch("/api/filing")
-      .then((res) => res.json())
-      .then((data: FilingResponse) => {
+    fetchFiling()
+      .then((data) => {
         const saved = data.eligibilityInput;
         if (saved) {
           setVisaClass(saved.visaClass);
@@ -73,10 +73,15 @@ export default function EligibilityPage() {
           setHadEarlierFJMQVisa(saved.hadEarlierFJMQVisa ? "yes" : "no");
           setHasGreenCard(saved.hasGreenCard ? "yes" : "no");
           setAppliedForGreenCard(saved.appliedForGreenCard ? "yes" : "no");
-          setAppliedForGreenCardExplanation(saved.appliedForGreenCardExplanation ?? "");
+          setAppliedForGreenCardExplanation(
+            saved.appliedForGreenCardExplanation ?? "",
+          );
           setSubStep("confirm");
         }
       })
+      .catch((err) =>
+        setError(err instanceof Error ? err.message : "Something went wrong."),
+      )
       .finally(() => setIsHydrating(false));
   }, []);
 
@@ -89,7 +94,7 @@ export default function EligibilityPage() {
       formData.append("taxYear", String(CURRENT_SUPPORTED_TAX_YEAR));
       formData.append("i94", i94File);
       formData.append("travelHistory", travelHistoryFile);
-      const res = await fetch("/api/documents/extract-i94", {
+      const res = await fetch("/api/documents/extract/i94", {
         method: "POST",
         body: formData,
       });
@@ -118,6 +123,17 @@ export default function EligibilityPage() {
       await Promise.all([
         uploadFile("i94", i94File),
         uploadFile("travel_history", travelHistoryFile),
+        // Persist name/DOB/citizenship right away so the profile page arrives
+        // pre-filled — the user only confirms them there, never types them.
+        fetch("/api/documents/i94-identity", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            legalName: data.legalName,
+            dob: data.dob,
+            citizenship: data.citizenship,
+          }),
+        }),
       ]);
 
       setSubStep("confirm");
@@ -145,7 +161,9 @@ export default function EligibilityPage() {
           hasGreenCard: hasGreenCard === "yes",
           appliedForGreenCard: appliedForGreenCard === "yes",
           appliedForGreenCardExplanation:
-            appliedForGreenCard === "yes" ? appliedForGreenCardExplanation : undefined,
+            appliedForGreenCard === "yes"
+              ? appliedForGreenCardExplanation
+              : undefined,
         }),
       });
       if (!res.ok) {
@@ -270,8 +288,9 @@ export default function EligibilityPage() {
 
           <div className="space-y-2">
             <Label>
-              During {CURRENT_SUPPORTED_TAX_YEAR}, did you apply for, or take other affirmative steps to apply for,
-              lawful permanent resident status in the United States?
+              During {CURRENT_SUPPORTED_TAX_YEAR}, did you apply for, or take
+              other affirmative steps to apply for, lawful permanent resident
+              status in the United States?
             </Label>
             <RadioGroup
               value={appliedForGreenCard}
@@ -293,7 +312,9 @@ export default function EligibilityPage() {
               <Textarea
                 id="appliedForGreenCardExplanation"
                 value={appliedForGreenCardExplanation}
-                onChange={(e) => setAppliedForGreenCardExplanation(e.target.value)}
+                onChange={(e) =>
+                  setAppliedForGreenCardExplanation(e.target.value)
+                }
               />
             </div>
           )}
@@ -332,9 +353,10 @@ export default function EligibilityPage() {
               ))}
             </SelectContent>
           </Select>
-          <p className="text-xs text-muted-foreground">
-            Only {CURRENT_SUPPORTED_TAX_YEAR} is supported right now —
-            back-filing for earlier years isn&apos;t available yet.
+          <p className="text-xs text-muted-foreground ml-1">
+            <i>
+              Only {CURRENT_SUPPORTED_TAX_YEAR} tax year is supported right now.
+            </i>
           </p>
         </div>
 

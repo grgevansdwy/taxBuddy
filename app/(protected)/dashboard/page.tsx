@@ -8,6 +8,7 @@ import { CURRENT_SUPPORTED_TAX_YEAR } from '@/lib/config/taxYear'
 import { ONBOARDING_STEPS, routeForStage } from '@/lib/config/onboarding'
 import { DOC_LABELS } from '@/lib/config/docLabels'
 import { formatIsoDate } from '@/lib/format'
+import { loadEngineContext } from '@/lib/server/engineContext'
 import type { DocType, ResidencyResult } from '@/lib/types'
 
 interface FilingRow {
@@ -44,7 +45,10 @@ function ResidencySnapshot({ residency }: { residency: ResidencyResult }) {
 }
 
 function StageTracker({ stage }: { stage: string }) {
-  const currentIndex = ONBOARDING_STEPS.findIndex((step) => step.stage === stage)
+  // "file" isn't one of the wizard steps (it's the terminal state after
+  // them), so every step reads as done rather than falling through to
+  // "pending" because findIndex returns -1 for it.
+  const currentIndex = stage === 'file' ? ONBOARDING_STEPS.length : ONBOARDING_STEPS.findIndex((step) => step.stage === stage)
   return (
     <div className="grid grid-cols-4 gap-3">
       {ONBOARDING_STEPS.map((step, index) => {
@@ -89,6 +93,47 @@ function StageTracker({ stage }: { stage: string }) {
   )
 }
 
+const FORM_DOWNLOADS: { id: string; label: string; route: string }[] = [
+  { id: '1040nr', label: 'Form 1040-NR', route: '/api/documents/generate/1040nr' },
+  { id: 'schedOI', label: 'Schedule OI', route: '/api/documents/generate/schedOI' },
+  { id: 'f8843', label: 'Form 8843', route: '/api/documents/generate/f8843' },
+  { id: 'schedNEC', label: 'Schedule NEC', route: '/api/documents/generate/schedNEC' },
+  { id: 'schedA', label: 'Schedule A', route: '/api/documents/generate/schedA' },
+  { id: 'f8833', label: 'Form 8833', route: '/api/documents/generate/f8833' },
+]
+
+async function ReadyToFileCard() {
+  const result = await loadEngineContext()
+  // Form 8843 (and the identity/residency forms) never depend on income data,
+  // so they're always offered even if the income engine can't run yet.
+  const applicable = new Set(['1040nr', 'schedOI', 'f8843'])
+  if (result.ok) {
+    const { income } = result.context
+    if (income.dividendsGross > 0 || income.capitalGainsTaxable) applicable.add('schedNEC')
+    if (!income.usesStandardDeduction && income.charitableContributions > 0) applicable.add('schedA')
+    if (income.needsForm8833) applicable.add('f8833')
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Your tax return is ready</CardTitle>
+        <CardDescription>Download each form below and mail them together, or use the instructions provided.</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-2">
+        {FORM_DOWNLOADS.filter((form) => applicable.has(form.id)).map((form) => (
+          <a key={form.id} href={form.route} className="block">
+            <Button variant="outline" className="w-full justify-between">
+              {form.label}
+              <span aria-hidden>↓</span>
+            </Button>
+          </a>
+        ))}
+      </CardContent>
+    </Card>
+  )
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
@@ -122,7 +167,7 @@ export default async function DashboardPage() {
         </form>
       </header>
 
-      <main className="flex flex-1 justify-center px-6 py-10">
+      <main className="flex flex-1 items-center justify-center px-6 py-10">
         <div className="w-full max-w-xl space-y-6">
           {stage === 'blocked' ? (
             <Card>
@@ -137,38 +182,44 @@ export default async function DashboardPage() {
               </CardContent>
             </Card>
           ) : stage === 'eligibility' ? (
-            <div className="space-y-3 text-center">
-              <p className="text-2xl font-semibold text-foreground">Let&apos;s find your refund</p>
-              <p className="text-muted-foreground">
+            <div className="space-y-5 text-center">
+              <p className="text-4xl font-semibold tracking-tight text-foreground">Let&apos;s find your refund</p>
+              <p className="text-lg leading-relaxed text-muted-foreground">
                 Welcome, {user.email}. Most F-1 students overpay. Start with your I-94 and travel history — it takes
                 about 15 minutes end to end.
               </p>
               <Link href="/onboarding/eligibility">
-                <Button className="mt-2">Start your filing →</Button>
+                <Button size="lg" className="mt-4">
+                  Start your filing →
+                </Button>
               </Link>
             </div>
           ) : (
             <div className="space-y-6">
               <div>
                 <p className="text-sm text-muted-foreground">Tax year {CURRENT_SUPPORTED_TAX_YEAR}</p>
-                <p className="text-2xl font-semibold text-foreground">Welcome back</p>
+                <p className="text-2xl font-semibold text-foreground">{stage === 'file' ? "You're all set" : 'Welcome back'}</p>
               </div>
 
               <StageTracker stage={stage} />
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Pick up where you left off</CardTitle>
-                  <CardDescription>
-                    {ONBOARDING_STEPS.find((step) => step.stage === stage)?.label ?? 'Next step'}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <Link href={routeForStage(stage)}>
-                    <Button className="w-full">Continue →</Button>
-                  </Link>
-                </CardContent>
-              </Card>
+              {stage === 'file' ? (
+                <ReadyToFileCard />
+              ) : (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Pick up where you left off</CardTitle>
+                    <CardDescription>
+                      {ONBOARDING_STEPS.find((step) => step.stage === stage)?.label ?? 'Next step'}
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <Link href={routeForStage(stage)}>
+                      <Button className="w-full">Continue →</Button>
+                    </Link>
+                  </CardContent>
+                </Card>
+              )}
 
               {filing?.residency && <ResidencySnapshot residency={filing.residency} />}
 
