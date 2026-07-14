@@ -4,7 +4,6 @@ import { computeIncomeEngine, type IncomeEngineResult } from "@/lib/rules/income
 import type {
   EligibilityInput,
   F1042SData,
-  F1098TData,
   F1099BData,
   F1099DIVData,
   F1099INTData,
@@ -37,7 +36,7 @@ export async function loadEngineContext(): Promise<EngineContextResult> {
   const { data } = await supabase
     .from("filings")
     .select(
-      "profile, residency, eligibility_input, f1098t, f1042s, f1099ints, f1099divs, f1099bs, charitable_contributions"
+      "profile, residency, eligibility_input, f1042s, f1099ints, f1099divs, f1099bs, charitable_contributions"
     )
     .eq("user_id", user.id)
     .eq("tax_year", CURRENT_SUPPORTED_TAX_YEAR)
@@ -55,7 +54,6 @@ export async function loadEngineContext(): Promise<EngineContextResult> {
     taxYear: CURRENT_SUPPORTED_TAX_YEAR,
     profile,
     residency,
-    f1098t: (data.f1098t as F1098TData | null) ?? null,
     f1042s: (data.f1042s as F1042SData[] | undefined) ?? [],
     f1099ints: (data.f1099ints as F1099INTData[] | undefined) ?? [],
     f1099divs: (data.f1099divs as F1099DIVData[] | undefined) ?? [],

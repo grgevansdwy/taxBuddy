@@ -28,6 +28,7 @@ export const F8843_FIELD_MAP: Record<string, PdfFieldEntry> = {
   "f8843.4a.prior2": { type: "text", field: `${PAGE1}.f1_16[0]` }, // days present, 2 years prior
   "f8843.4b": { type: "text", field: `${PAGE1}.f1_17[0]` }, // days excluded
   "f8843.9": { type: "text", field: `${PAGE1}.f1_26[0]` }, // school name/address/phone (Part III students)
+  "f8843.10": { type: "text", field: `${PAGE1}.f1_27[0]` }, // director (DSO) name/address/phone — box immediately below line 9
   // maxLength=1 on all six — the form wants a single visa-type letter
   // (F/J/M/Q) per year, not the full "F-1" string.
   "f8843.11.2019": { type: "text", field: `${PAGE1}.f1_28[0]` },

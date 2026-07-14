@@ -11,7 +11,6 @@ const KIND_LABELS: Record<ExtractionKind, string> = {
   i20: "I-20",
   w2: "W-2",
   f1042s: "1042-S",
-  f1098t: "1098-T",
   f1099int: "1099-INT",
   f1099div: "1099-DIV",
   f1099b: "1099-B",
@@ -41,6 +40,7 @@ function KindCard({ kind }: { kind: ExtractionKind }) {
   const [markdowns, setMarkdowns] = useState<(string | null)[]>(Array(documentTitles.length).fill(null));
   const [status, setStatus] = useState<Status>("idle");
   const [extraction, setExtraction] = useState<unknown>(null);
+  const [webSearch, setWebSearch] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function handleFileChange(index: number, file: File | null) {
@@ -48,6 +48,7 @@ function KindCard({ kind }: { kind: ExtractionKind }) {
     nextFiles[index] = file;
     setFiles(nextFiles);
     setExtraction(null);
+    setWebSearch(null);
     setError(null);
 
     if (nextFiles.some((f) => f === null)) {
@@ -79,6 +80,7 @@ function KindCard({ kind }: { kind: ExtractionKind }) {
       const extractBody = await extractRes.json();
       if (!extractRes.ok) throw new Error(extractBody?.error ?? "Extraction failed.");
       setExtraction(extractBody.extraction);
+      setWebSearch(extractBody.webSearch ?? null);
       setStatus("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -90,6 +92,7 @@ function KindCard({ kind }: { kind: ExtractionKind }) {
     setFiles(Array(documentTitles.length).fill(null));
     setMarkdowns(Array(documentTitles.length).fill(null));
     setExtraction(null);
+    setWebSearch(null);
     setError(null);
     setStatus("idle");
   }
@@ -150,6 +153,15 @@ function KindCard({ kind }: { kind: ExtractionKind }) {
           <span className="text-xs font-medium text-muted-foreground">Extracted JSON</span>
           <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-xl bg-muted p-3 text-xs">
             {JSON.stringify(extraction, null, 2)}
+          </pre>
+        </div>
+      )}
+
+      {webSearch != null && (
+        <div className="space-y-1">
+          <span className="text-xs font-medium text-muted-foreground">Web search result</span>
+          <pre className="max-h-64 overflow-auto whitespace-pre-wrap rounded-xl bg-muted p-3 text-xs">
+            {JSON.stringify(webSearch, null, 2)}
           </pre>
         </div>
       )}

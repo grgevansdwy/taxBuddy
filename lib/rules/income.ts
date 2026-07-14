@@ -1,6 +1,5 @@
 import type {
   F1042SData,
-  F1098TData,
   F1099BData,
   F1099DIVData,
   F1099INTData,
@@ -27,10 +26,9 @@ const SCHOLARSHIP_INCOME_CODE = "16"; // 1042-S box 1, per F1042SData's own comm
 
 export interface IncomeEngineResult {
   // ---- Scholarship (Form 1040-NR Schedule 1 line 8r equivalent) ----
-  scholarshipGrossExcess: number; // 1098-T box5 - box1, floored at 0
   scholarshipTreatyExempt: number; // portion excluded under a student-article treaty
-  scholarshipTaxable: number; // grossExcess - treatyExempt
-  scholarship1042SReported: number; // sum of income-code-16 1042-S gross income, for cross-check
+  scholarshipTaxable: number; // scholarship1042SReported - treatyExempt
+  scholarship1042SReported: number; // sum of income-code-16 1042-S gross income — the taxable scholarship amount itself
   scholarship1042SWithheld: number;
   scholarshipExemptSubstantiatedBy1042S: boolean; // true if a 1042-S already documents the treaty claim
 
@@ -76,22 +74,23 @@ export function computeIncomeEngine(args: {
   taxYear: number;
   profile: Partial<FilerProfile>;
   residency: ResidencyResult;
-  f1098t: F1098TData | null;
   f1042s: F1042SData[];
   f1099ints: F1099INTData[];
   f1099divs: F1099DIVData[];
   f1099bs: F1099BData[];
   charitableContributions: number;
 }): IncomeEngineResult {
-  const { taxYear, profile, residency, f1098t, f1042s, f1099ints, f1099divs, f1099bs, charitableContributions } =
-    args;
+  const { taxYear, profile, residency, f1042s, f1099ints, f1099divs, f1099bs, charitableContributions } = args;
   const config = TAX_YEAR_CONFIG;
   const country = profile.citizenship?.value ?? "";
   const findings: Finding[] = [];
   const trace: TraceEvent[] = [];
 
   // ---------- Scholarship ----------
-  const scholarshipGrossExcess = f1098t ? Math.max(0, f1098t.box5 - f1098t.box1) : 0;
+  // Taxable scholarship income comes straight from the school's own 1042-S
+  // (income code 16) — they've already computed the excess-over-qualified-
+  // expenses amount and withheld against it, so there's no separate "excess
+  // over tuition" calculation to do here.
   const scholarship1042s = f1042s.filter((doc) => doc.incomeCode === SCHOLARSHIP_INCOME_CODE);
   const scholarship1042SReported = sum(scholarship1042s.map((doc) => doc.grossIncome));
   const scholarship1042SWithheld = sum(scholarship1042s.map((doc) => doc.taxWithheld));
@@ -101,35 +100,18 @@ export function computeIncomeEngine(args: {
 
   const scholarshipTreatyRule = findTreatyRuleForCountryName(country, "scholarship", taxYear);
   const scholarshipTreatyExempt = scholarshipTreatyRule
-    ? Math.min(scholarshipGrossExcess, scholarshipTreatyRule.exempt_amount ?? Infinity)
+    ? Math.min(scholarship1042SReported, scholarshipTreatyRule.exempt_amount ?? Infinity)
     : 0;
-  const scholarshipTaxable = scholarshipGrossExcess - scholarshipTreatyExempt;
+  const scholarshipTaxable = scholarship1042SReported - scholarshipTreatyExempt;
 
-  if (f1098t) {
-    if (scholarshipGrossExcess === 0) {
-      findings.push({
-        id: "scholarship-covered",
-        kind: "scholarship",
-        headline: "Your scholarship covered tuition only — no taxable scholarship income.",
-        detail: `1098-T box 5 ($${f1098t.box5}) did not exceed box 1 ($${f1098t.box1}).`,
-      });
-    } else if (scholarship1042s.length === 0) {
-      findings.push({
-        id: "scholarship-missing-1042s",
-        kind: "scholarship",
-        headline: `Your scholarship exceeds tuition by $${scholarshipGrossExcess} — that portion is taxable.`,
-        amountUsd: scholarshipGrossExcess,
-        detail: "Expected a 1042-S from your school reporting this; none was uploaded. Taxability computed from the 1098-T alone.",
-      });
-    } else {
-      findings.push({
-        id: "scholarship-matched-1042s",
-        kind: "scholarship",
-        headline: `Your scholarship was $${f1098t.box5} and your tuition was $${f1098t.box1}, so $${scholarshipGrossExcess} is taxable income.`,
-        amountUsd: scholarshipGrossExcess,
-        detail: `Your school reported $${scholarship1042SReported} on 1042-S and withheld $${scholarship1042SWithheld}.`,
-      });
-    }
+  if (scholarship1042SReported > 0) {
+    findings.push({
+      id: "scholarship-taxable",
+      kind: "scholarship",
+      headline: `Your school reported $${scholarship1042SReported} in taxable scholarship income on Form 1042-S.`,
+      amountUsd: scholarship1042SReported,
+      detail: `$${scholarship1042SWithheld} was withheld.`,
+    });
   }
   if (scholarshipTreatyExempt > 0) {
     findings.push({
@@ -141,7 +123,7 @@ export function computeIncomeEngine(args: {
     });
     trace.push({
       rule: "treaty.scholarship",
-      inputs: { country, scholarshipGrossExcess },
+      inputs: { country, scholarship1042SReported },
       output: scholarshipTreatyExempt,
       citation: scholarshipTreatyRule?.citation,
     });
@@ -248,7 +230,6 @@ export function computeIncomeEngine(args: {
   }
 
   return {
-    scholarshipGrossExcess,
     scholarshipTreatyExempt,
     scholarshipTaxable,
     scholarship1042SReported,

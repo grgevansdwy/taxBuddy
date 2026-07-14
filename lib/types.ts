@@ -11,7 +11,6 @@ export type DocType =
   | "i20"
   | "w2"
   | "f1042s"
-  | "f1098t"
   | "f1099int"
   | "f1099b"
   | "f1099div"
@@ -50,9 +49,11 @@ export type FilingStatus = "single" | "married_nra";
 
 export interface SchoolInfo {
   name: string;
-  address: string;
-  phone: string;
-  dsoName: string;
+  address: string; // institution's mailing address → Form 8843 line 9 (looked up online, not on the I-20)
+  phone: string; // institution's general phone → Form 8843 line 9 (looked up online, not on the I-20)
+  dsoName: string; // from the I-20
+  dsoAddress: string; // international student office address, printed on the I-20 as "school address" → Form 8843 line 10
+  dsoPhone: string; // international student office phone → Form 8843 line 10 (looked up online, not on the I-20)
 }
 
 // ------------- Filer Profile -------------
@@ -129,12 +130,6 @@ export interface F1042SData {
   withholdingCredit: number; // box 10 — total withholding credit (combine 7a+8+9) - 
 }
 
-// 1098-T — tuition statement (validation only, not directly on forms)
-export interface F1098TData {
-  box1: number; // amounts billed for qualified tuition
-  box5: number; // scholarships or grants
-}
-
 // 1099-INT — interest income
 export interface F1099INTData {
   payerName: string;
@@ -179,7 +174,6 @@ export interface FilingInput {
   // Income documents
   w2s: W2Data[];
   f1042s: F1042SData[];
-  f1098t: F1098TData | null;
   f1099ints: F1099INTData[];
   f1099divs: F1099DIVData[];
   f1099bs: F1099BData[];
@@ -225,7 +219,7 @@ export interface TraceEvent {
 
 export type FindingKind =
   | "fica" // W-2 boxes 4+6 nonzero for exempt NRA
-  | "scholarship" // 1098-T excess vs 1042-S match
+  | "scholarship" // taxable scholarship reported on 1042-S income code 16
   | "treaty" // treaty benefit applied
   | "exempt_interest" // bank interest exempt under §871(i)
   | "completeness" // income summary confirmation

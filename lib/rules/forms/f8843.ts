@@ -41,6 +41,10 @@ export function computeForm8843(args: {
     ? [profile.school.name, profile.school.address, profile.school.phone].filter(Boolean).join(", ")
     : "";
 
+  const dso = profile.school
+    ? [profile.school.dsoName, profile.school.dsoAddress, profile.school.dsoPhone].filter(Boolean).join(", ")
+    : "";
+
   const lines: Record<string, string> = {
     "f8843.firstName": firstNameAndInitial,
     "f8843.lastName": lastName,
@@ -56,6 +60,7 @@ export function computeForm8843(args: {
     "f8843.4a.prior2": String(residency.daysPresent.prior2),
     "f8843.4b": String(residency.daysExcluded),
     "f8843.9": school,
+    "f8843.10": dso,
     // Anyone reaching this form already passed the Stage 0 five-year gate
     // (lib/rules/eligibility.ts), so line 12 is always "No" for our scope.
     "f8843.12": "no",

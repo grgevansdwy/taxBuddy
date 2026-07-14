@@ -2,6 +2,11 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { parsePdfToMarkdown } from "@/lib/parsing/llamaParse";
 import { extractFromMarkdown } from "@/lib/ai/extractFromMarkdown";
+import { lookupSchoolContactInfo } from "@/lib/ai/lookupSchoolContactInfo";
+import type { I20Extraction } from "@/lib/extraction/schemas/i20";
+import type { SchoolContactLookup } from "@/lib/ai/lookupSchoolContactInfo";
+
+export type I20ExtractResponse = I20Extraction & SchoolContactLookup;
 
 // Nothing is persisted here — per the EXTRACT-then-CONFIRM principle, extracted
 // fields aren't written to the case file until the user confirms them.
@@ -24,7 +29,20 @@ export async function POST(request: Request) {
   try {
     const markdown = await parsePdfToMarkdown({ buffer: Buffer.from(await file.arrayBuffer()), fileName: file.name });
     const extraction = await extractFromMarkdown("i20", [{ title: "I-20", markdown }]);
-    return NextResponse.json(extraction);
+
+    // The I-20 itself doesn't print the institution's address/phone or the
+    // international office's phone (see lib/extraction/schemas/i20.ts) — look
+    // those up online. A lookup failure shouldn't block the I-20 upload, so
+    // fall back to blank strings rather than failing the whole request.
+    let contact: SchoolContactLookup = { address: "", phone: "", dsoPhone: "" };
+    try {
+      contact = await lookupSchoolContactInfo({ schoolName: extraction.schoolName, dsoName: extraction.dsoName });
+    } catch (lookupErr) {
+      console.error("lookupSchoolContactInfo failed:", lookupErr);
+    }
+
+    const response: I20ExtractResponse = { ...extraction, ...contact };
+    return NextResponse.json(response);
   } catch (err) {
     console.error("extractI20 failed:", err);
     const detail = err instanceof Error ? err.message : String(err);

@@ -8,7 +8,6 @@ import { WizardShell } from "@/components/onboarding/wizard-shell";
 import { WizardBackOnly } from "@/components/onboarding/wizard-nav-row";
 import { UploadSlot } from "@/components/onboarding/upload-slot";
 import { I20Slot } from "@/components/onboarding/i20-slot";
-import { Scholarship1098TSlot } from "@/components/onboarding/income-docs/scholarship-1098t-slot";
 import { Income1042SSlot } from "@/components/onboarding/income-docs/income-1042s-slot";
 import { Consolidated1099Slot } from "@/components/onboarding/income-docs/consolidated-1099-slot";
 import { W2Slot } from "@/components/onboarding/income-docs/w2-slot";
@@ -17,7 +16,6 @@ import { fetchFiling } from "@/lib/client/fetchFiling";
 import type {
   DocType,
   F1042SData,
-  F1098TData,
   F1099BData,
   F1099DIVData,
   F1099INTData,
@@ -32,7 +30,7 @@ const ALREADY_ON_FILE: DocType[] = ["i94", "travel_history"];
 // saved automatically, no confirm screen). I-20 gets the same treatment but
 // is handled separately below (it saves to profile.school/sevisId, not an
 // income array). EAD stays raw-upload-only — out of scope this phase.
-const EXTRACTED_INCOME_TYPES: DocType[] = ["f1098t", "f1042s", "f1099combined", "w2"];
+const EXTRACTED_INCOME_TYPES: DocType[] = ["f1042s", "f1099combined", "w2"];
 
 export default function DocumentsPage() {
   const router = useRouter();
@@ -43,8 +41,6 @@ export default function DocumentsPage() {
   const [isFiling, setIsFiling] = useState(false);
   const [fileError, setFileError] = useState<string | null>(null);
 
-  const [f1098t, setF1098t] = useState<F1098TData | null>(null);
-  const [f1098tConfirmed, setF1098tConfirmed] = useState(false);
   const [f1042s, setF1042s] = useState<F1042SData[]>([]);
   const [f1099ints, setF1099ints] = useState<F1099INTData[]>([]);
   const [f1099divs, setF1099divs] = useState<F1099DIVData[]>([]);
@@ -52,7 +48,6 @@ export default function DocumentsPage() {
   const [w2s, setW2s] = useState<W2Data[]>([]);
 
   const [school, setSchool] = useState<SchoolInfo | null>(null);
-  const [sevisId, setSevisId] = useState<string | null>(null);
   const [i20Confirmed, setI20Confirmed] = useState(false);
 
   useEffect(() => {
@@ -67,16 +62,13 @@ export default function DocumentsPage() {
         setDocuments(checklist.documents ?? []);
         setExplanation(checklist.explanation ?? "");
         setUploadedDocuments(filing.uploadedDocuments ?? {});
-        setF1098t(filing.f1098t ?? null);
-        setF1098tConfirmed(!!filing.f1098t);
         setF1042s(filing.f1042s ?? []);
         setF1099ints(filing.f1099ints ?? []);
         setF1099divs(filing.f1099divs ?? []);
         setF1099bs(filing.f1099bs ?? []);
         setW2s(filing.w2s ?? []);
         setSchool(filing.profile?.school ?? null);
-        setSevisId(filing.profile?.sevisId ?? null);
-        setI20Confirmed(Boolean(filing.profile?.school && filing.profile?.sevisId));
+        setI20Confirmed(Boolean(filing.profile?.school));
       })
       .catch((err) => setFileError(err instanceof Error ? err.message : "Something went wrong."))
       .finally(() => setIsLoading(false));
@@ -91,7 +83,6 @@ export default function DocumentsPage() {
   // What's still blocking "File your Tax!" — every flagged income document
   // needs at least one confirmed entry. Nothing here is ever assumed.
   const docConfirmed: Partial<Record<DocType, boolean>> = {
-    f1098t: f1098tConfirmed,
     f1042s: f1042s.length > 0,
     f1099combined: f1099ints.length > 0 || f1099divs.length > 0 || f1099bs.length > 0,
     w2: w2s.length > 0,
@@ -136,9 +127,7 @@ export default function DocumentsPage() {
               </p>
             ) : (
               <div className="space-y-4">
-                {needsI20 && (
-                  <I20Slot initialSchool={school} initialSevisId={sevisId} onConfirmedChange={setI20Confirmed} />
-                )}
+                {needsI20 && <I20Slot initialSchool={school} onConfirmedChange={setI20Confirmed} />}
 
                 {uploadDocs.map((doc) => (
                   <UploadSlot
@@ -149,9 +138,6 @@ export default function DocumentsPage() {
                   />
                 ))}
 
-                {incomeDocs.includes("f1098t") && (
-                  <Scholarship1098TSlot initialValue={f1098t} onConfirmedChange={setF1098tConfirmed} />
-                )}
                 {incomeDocs.includes("f1042s") && (
                   <Income1042SSlot initialValue={f1042s} onItemsChange={setF1042s} />
                 )}

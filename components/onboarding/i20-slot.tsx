@@ -2,24 +2,23 @@
 
 import { useEffect, useState } from "react";
 import { FileDropSlot } from "@/components/onboarding/file-drop-slot";
-import type { I20Extraction } from "@/lib/extraction/schemas/i20";
+import type { I20ExtractResponse } from "@/app/api/documents/extract/i20/route";
 import type { SchoolInfo } from "@/lib/types";
 
 type Phase = "upload" | "processing";
 
 // Silent EXTRACT-and-save for I-20, same pattern as the income-doc slots:
-// upload → gpt-4o-mini reads it → saved automatically to profile.school /
-// profile.sevisId via /api/documents/i20. No confirm step, no fields shown.
+// upload → gpt-4o-mini reads schoolName/dsoName/dsoAddress, a web search
+// fills in address/phone/dsoPhone → saved automatically to profile.school
+// via /api/documents/i20. No confirm step, no fields shown.
 export function I20Slot({
   initialSchool,
-  initialSevisId,
   onConfirmedChange,
 }: {
   initialSchool: SchoolInfo | null;
-  initialSevisId: string | null;
   onConfirmedChange?: (confirmed: boolean) => void;
 }) {
-  const [confirmed, setConfirmed] = useState(Boolean(initialSchool && initialSevisId));
+  const [confirmed, setConfirmed] = useState(Boolean(initialSchool));
   const [phase, setPhase] = useState<Phase>("upload");
   const [error, setError] = useState<string | null>(null);
 
@@ -47,19 +46,21 @@ export function I20Slot({
         const body = await extractRes.json().catch(() => null);
         throw new Error(body?.error ?? "Couldn't read this document.");
       }
-      const data = (await extractRes.json()) as I20Extraction;
+      const data = (await extractRes.json()) as I20ExtractResponse;
 
       const school: SchoolInfo = {
         name: data.schoolName,
-        address: data.schoolAddress,
-        phone: data.schoolPhone,
+        address: data.address,
+        phone: data.phone,
         dsoName: data.dsoName,
+        dsoAddress: data.dsoAddress,
+        dsoPhone: data.dsoPhone,
       };
 
       const saveRes = await fetch("/api/documents/i20", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ school, sevisId: data.sevisId }),
+        body: JSON.stringify({ school }),
       });
       if (!saveRes.ok) throw new Error("Couldn't save this document.");
 

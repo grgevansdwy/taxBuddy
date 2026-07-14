@@ -1,0 +1,56 @@
+import { z } from "zod";
+import { openai } from "@/lib/ai/openaiClient";
+
+// The I-20 only prints the institution name, DSO name, and the international
+// student office's address (see lib/extraction/schemas/i20.ts). Form 8843
+// lines 9/10 also need the institution's own mailing address/phone and the
+// international office's phone number — none of which are on the I-20 — so
+// this looks them up via a live web search instead.
+const SchoolContactLookupSchema = z.object({
+  address: z.string(),
+  phone: z.string(),
+  dsoPhone: z.string(),
+});
+
+export type SchoolContactLookup = z.infer<typeof SchoolContactLookupSchema>;
+
+export async function lookupSchoolContactInfo(args: {
+  schoolName: string;
+  dsoName: string;
+}): Promise<SchoolContactLookup> {
+  const response = await openai.responses.create({
+    model: "gpt-4o-mini",
+    tools: [{ type: "web_search" }],
+    input:
+      `Find this publicly available contact information for "${args.schoolName}", using the school's ` +
+      `official website:\n` +
+      `1. The institution's official mailing address (main campus or registrar address).\n` +
+      `2. The institution's general phone number.\n` +
+      `3. The phone number for the international student office / international programs office — the ` +
+      `office that issues Form I-20s and where the Designated School Official "${args.dsoName}" works.\n\n` +
+      `If a value truly can't be found, return an empty string for it rather than guessing.`,
+    text: {
+      format: {
+        type: "json_schema",
+        name: "school_contact_lookup",
+        schema: {
+          type: "object",
+          properties: {
+            address: { type: "string", description: "Institution's official mailing address." },
+            phone: { type: "string", description: "Institution's general phone number." },
+            dsoPhone: { type: "string", description: "International student/programs office phone number." },
+          },
+          required: ["address", "phone", "dsoPhone"],
+          additionalProperties: false,
+        },
+        strict: true,
+      },
+    },
+  });
+
+  if (!response.output_text) {
+    throw new Error("Web search did not return school contact info.");
+  }
+
+  return SchoolContactLookupSchema.parse(JSON.parse(response.output_text));
+}

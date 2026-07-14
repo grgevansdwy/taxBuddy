@@ -1,9 +1,11 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { extractFromMarkdown } from "@/lib/ai/extractFromMarkdown";
-import type { ExtractionKind } from "@/lib/ai/extractionSpecs";
+import { EXTRACTION_SPECS, type ExtractionKind } from "@/lib/ai/extractionSpecs";
+import { lookupSchoolContactInfo } from "@/lib/ai/lookupSchoolContactInfo";
+import type { I20Extraction } from "@/lib/extraction/schemas/i20";
 
-const VALID_KINDS: ExtractionKind[] = ["i94", "f1042s", "f1098t", "f1099int", "f1099div", "f1099b"];
+const VALID_KINDS = Object.keys(EXTRACTION_SPECS) as ExtractionKind[];
 
 interface ExtractPreviewRequestBody {
   kind: ExtractionKind;
@@ -34,7 +36,20 @@ export async function POST(request: Request) {
 
   try {
     const extraction = await extractFromMarkdown(body.kind, body.documents);
-    return NextResponse.json({ extraction });
+
+    // I-20 is the only kind with a follow-up web search (see
+    // lib/ai/lookupSchoolContactInfo.ts) — surface it here too so this
+    // preview tool mirrors the real /api/documents/extract/i20 pipeline.
+    let webSearch: unknown = undefined;
+    if (body.kind === "i20") {
+      const i20Extraction = extraction as I20Extraction;
+      webSearch = await lookupSchoolContactInfo({
+        schoolName: i20Extraction.schoolName,
+        dsoName: i20Extraction.dsoName,
+      });
+    }
+
+    return NextResponse.json({ extraction, webSearch });
   } catch (err) {
     const detail = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: detail }, { status: 502 });

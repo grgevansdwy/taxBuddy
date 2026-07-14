@@ -16,10 +16,6 @@ import {
   type F1042SExtraction,
 } from "@/lib/extraction/schemas/f1042s";
 import {
-  F1098TExtractionSchema,
-  type F1098TExtraction,
-} from "@/lib/extraction/schemas/f1098t";
-import {
   F1099IntExtractionSchema,
   type F1099IntExtraction,
 } from "@/lib/extraction/schemas/f1099int";
@@ -43,7 +39,6 @@ export type ExtractionKind =
   | "i20"
   | "w2"
   | "f1042s"
-  | "f1098t"
   | "f1099int"
   | "f1099div"
   | "f1099b";
@@ -53,7 +48,6 @@ export interface ExtractionKindResult {
   i20: I20Extraction;
   w2: W2Extraction;
   f1042s: F1042SExtraction;
-  f1098t: F1098TExtraction;
   f1099int: F1099IntExtraction;
   f1099div: F1099DivExtraction;
   f1099b: F1099BExtraction;
@@ -162,24 +156,16 @@ export const EXTRACTION_SPECS: {
           description:
             "The school's name, as printed in the School Information section.",
         },
-        schoolAddress: {
-          type: "string",
-          description:
-            "The school's full address, as printed in the School Information section.",
-        },
-        schoolPhone: {
-          type: "string",
-          description:
-            "The school's phone number, as printed in the School Information section.",
-        },
         dsoName: {
           type: "string",
           description:
             "The name of the Designated School Official (DSO) who signed the I-20, from the signature block.",
         },
-        sevisId: {
+        dsoAddress: {
           type: "string",
-          description: "The SEVIS ID number, e.g. 'N0012345678'.",
+          description:
+            "The address printed in the School Information section under 'School Address'. This is the " +
+            "international student office's address, not necessarily the institution's general mailing address.",
         },
         confidence: {
           type: "number",
@@ -187,7 +173,7 @@ export const EXTRACTION_SPECS: {
             "Overall confidence (0-1) that every field above was read correctly.",
         },
       },
-      required: ["schoolName", "schoolAddress", "schoolPhone", "dsoName", "sevisId", "confidence"],
+      required: ["schoolName", "dsoName", "dsoAddress", "confidence"],
       additionalProperties: false,
     },
     schema: I20ExtractionSchema,
@@ -323,34 +309,6 @@ export const EXTRACTION_SPECS: {
     schema: F1042SExtractionSchema,
     instruction: "Extract the required fields from the 1042-S document above.",
     documentTitles: ["1042-S"],
-  },
-  f1098t: {
-    systemPrompt:
-      "You extract fields from a US Form 1098-T (Tuition Statement) for an F-1 " +
-      "student's tax filing. Extract only what's clearly printed in the document; " +
-      "do not infer or guess a value that isn't visible.",
-    jsonSchemaName: "record_f1098t_extraction",
-    jsonSchema: {
-      type: "object",
-      properties: {
-        box1: {
-          type: "number",
-          description:
-            "Box 1: payments received for qualified tuition and related expenses.",
-        },
-        box5: { type: "number", description: "Box 5: scholarships or grants." },
-        confidence: {
-          type: "number",
-          description:
-            "Overall confidence (0-1) that every field above was read correctly.",
-        },
-      },
-      required: ["box1", "box5", "confidence"],
-      additionalProperties: false,
-    },
-    schema: F1098TExtractionSchema,
-    instruction: "Extract the required fields from the 1098-T document above.",
-    documentTitles: ["1098-T"],
   },
   f1099int: {
     systemPrompt:

@@ -10,8 +10,8 @@ import type { TreatyRule } from "@/lib/types";
 // IMPORTANT nuance baked into the `scholarship` rows: several treaties'
 // student articles only exempt payments/remittances received FROM ABROAD for
 // the student's maintenance — they do NOT reach US-source scholarship money
-// paid by the US school itself (which is what 1098-T/1042-S report, and the
-// only scholarship income this engine ever sees). China and South Korea are
+// paid by the US school itself (which is what 1042-S income code 16 reports,
+// and the only scholarship income this engine ever sees). China and South Korea are
 // the exceptions: their treaties separately exempt "the grant, allowance, or
 // award" with no abroad-sourcing restriction, so US-school scholarships are
 // covered. India and Canada's articles are abroad-only, so exempt_amount is

@@ -5,7 +5,7 @@ import type { SchoolInfo } from "@/lib/types";
 
 interface I20RequestBody {
   school: SchoolInfo;
-  sevisId: string;
+  sevisId?: string; // no longer extracted from the I-20; kept for whenever it's collected another way
 }
 
 // Nothing extracted is trusted unsupervised — but per the silent
@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       profile: {
         ...(existing?.profile ?? {}),
         school: body.school,
-        sevisId: body.sevisId,
+        sevisId: body.sevisId ?? existing?.profile?.sevisId,
       },
     },
     { onConflict: "user_id,tax_year" }
