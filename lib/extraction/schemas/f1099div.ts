@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Output contract for the 1099-DIV extraction tool call in lib/ai/extractF1099Div.ts.
+// Output contract for the 1099-DIV extraction spec in lib/ai/extractionSpecs.ts.
 // Maps 1:1 onto F1099DIVData in lib/types.ts. See f1099int.ts's comment on
 // sectionPresent — same "Consolidated 1099" reasoning applies here.
 export const F1099DivExtractionSchema = z.object({

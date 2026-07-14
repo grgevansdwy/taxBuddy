@@ -11,7 +11,6 @@ interface ProfileRequestBody {
   foreignAddress: ForeignAddress;
   filingStatus: FilingStatus;
   ssnOrItin: string;
-  digitalAssets: boolean;
   priorReturn: { filed: boolean; year?: number };
 }
 
@@ -47,7 +46,9 @@ export async function POST(request: Request) {
         foreignAddress: body.foreignAddress,
         filingStatus: body.filingStatus,
         ssnOrItin: body.ssnOrItin,
-        digitalAssets: body.digitalAssets,
+        // digitalAssets is intentionally not touched here — it's asked on
+        // the interview page now and saved via /api/documents/checklist, so
+        // the spread above preserves whatever value already lives there.
         priorReturn: body.priorReturn,
       },
     },

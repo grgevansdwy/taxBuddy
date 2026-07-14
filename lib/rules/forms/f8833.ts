@@ -16,7 +16,12 @@ export function computeF8833(args: { profile: Partial<FilerProfile>; income: Inc
   if (!rule) return {};
 
   const foreignAddress = profile.foreignAddress
-    ? [profile.foreignAddress.state, profile.foreignAddress.postalCode, profile.foreignAddress.country]
+    ? [
+        profile.foreignAddress.line1,
+        profile.foreignAddress.state,
+        profile.foreignAddress.postalCode,
+        profile.foreignAddress.country,
+      ]
         .filter(Boolean)
         .join(", ")
     : "";

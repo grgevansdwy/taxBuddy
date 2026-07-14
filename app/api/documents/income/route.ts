@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { CURRENT_SUPPORTED_TAX_YEAR } from "@/lib/config/taxYear";
-import type { F1042SData, F1098TData, F1099BData, F1099DIVData, F1099INTData } from "@/lib/types";
+import type { F1042SData, F1098TData, F1099BData, F1099DIVData, F1099INTData, W2Data } from "@/lib/types";
 
 // Confirmed-income persistence: the client extracts a document (via one of
 // the routes under /api/documents/extract/*) and calls this route with the
@@ -9,11 +9,11 @@ import type { F1042SData, F1098TData, F1099BData, F1099DIVData, F1099INTData } f
 // income-docs components. Arrays (multiple payers/documents) are replaced
 // wholesale — the client owns array state (add/remove a row) and just
 // re-PUTs the full list each time.
-type IncomeField = "f1098t" | "f1042s" | "f1099ints" | "f1099divs" | "f1099bs";
+type IncomeField = "f1098t" | "f1042s" | "f1099ints" | "f1099divs" | "f1099bs" | "w2s";
 
 interface IncomeRequestBody {
   field: IncomeField;
-  value: F1098TData | null | F1042SData[] | F1099INTData[] | F1099DIVData[] | F1099BData[];
+  value: F1098TData | null | F1042SData[] | F1099INTData[] | F1099DIVData[] | F1099BData[] | W2Data[];
 }
 
 const COLUMN_BY_FIELD: Record<IncomeField, string> = {
@@ -22,6 +22,7 @@ const COLUMN_BY_FIELD: Record<IncomeField, string> = {
   f1099ints: "f1099ints",
   f1099divs: "f1099divs",
   f1099bs: "f1099bs",
+  w2s: "w2s",
 };
 
 export async function POST(request: Request) {

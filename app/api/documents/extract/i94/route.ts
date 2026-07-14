@@ -1,10 +1,12 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { extractI94 } from "@/lib/ai/extractI94";
+import { parsePdfToMarkdown } from "@/lib/parsing/llamaParse";
+import { extractFromMarkdown } from "@/lib/ai/extractFromMarkdown";
 
 // Nothing is persisted here — per the EXTRACT-then-CONFIRM principle, extracted
 // fields aren't written to the case file until the user confirms them via
-// /api/eligibility.
+// /api/eligibility. PDF -> markdown (LlamaParse) -> structured fields
+// (gpt-4o-mini), validated against the same Zod schema either pipeline uses.
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {
@@ -25,16 +27,19 @@ export async function POST(request: Request) {
     );
   }
 
-  const [i94Buffer, travelHistoryBuffer] = await Promise.all([
-    i94File.arrayBuffer(),
-    travelHistoryFile.arrayBuffer(),
-  ]);
-
   try {
-    const extraction = await extractI94({
-      i94Base64: Buffer.from(i94Buffer).toString("base64"),
-      travelHistoryBase64: Buffer.from(travelHistoryBuffer).toString("base64"),
-    });
+    const [i94Markdown, travelHistoryMarkdown] = await Promise.all([
+      parsePdfToMarkdown({ buffer: Buffer.from(await i94File.arrayBuffer()), fileName: i94File.name }),
+      parsePdfToMarkdown({
+        buffer: Buffer.from(await travelHistoryFile.arrayBuffer()),
+        fileName: travelHistoryFile.name,
+      }),
+    ]);
+
+    const extraction = await extractFromMarkdown("i94", [
+      { title: "I-94", markdown: i94Markdown },
+      { title: "I-94 travel history", markdown: travelHistoryMarkdown },
+    ]);
     return NextResponse.json(extraction);
   } catch (err) {
     // TODO: swap this for structured logging + a sanitized user-facing message

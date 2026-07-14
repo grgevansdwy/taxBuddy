@@ -40,6 +40,7 @@ export interface Address {
 }
 
 export interface ForeignAddress {
+  line1: string; //-
   state?: string; //-
   postalCode: string;  //-
   country: string;  //-
@@ -270,6 +271,8 @@ export interface EligibilityInput {
   hasGreenCard: boolean; // ASK
   appliedForGreenCard: boolean; // ASK → Form 8843 line 13
   appliedForGreenCardExplanation?: string; // ASK, only if appliedForGreenCard → Form 8843 line 14
+  changedVisaType: boolean; // ASK — true (ever changed visa type) fails the gate
+  incomeOnlyInWashington: boolean; // ASK — false (earned income outside WA) fails the gate
 }
 
 export interface EligibilityResult {
@@ -288,6 +291,11 @@ export interface InterviewAnswers {
   interestIncome: boolean;
   dividendIncome: boolean;
   soldAssets: boolean;
+  // Optional: saved separately via /api/reduction (which merges rather than
+  // replaces interview_answers), so a checklist POST that omits these never
+  // clobbers what's already there.
+  charitableContributions?: number; // Schedule A line 4
+  charitableContributionsConfirmed?: boolean; // true only once the user has actively saved (0 counts)
 }
 
 // ---------- Wizard ----------

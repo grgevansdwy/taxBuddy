@@ -20,10 +20,13 @@ export function computeForm8843(args: {
 
   const { firstNameAndInitial, lastName } = splitLegalName(profile.legalName?.value);
 
-  // ForeignAddress only carries state/postalCode/country today — no
-  // street/city field exists yet in the onboarding form (lib/types.ts).
   const foreignAddress = profile.foreignAddress
-    ? [profile.foreignAddress.state, profile.foreignAddress.postalCode, profile.foreignAddress.country]
+    ? [
+        profile.foreignAddress.line1,
+        profile.foreignAddress.state,
+        profile.foreignAddress.postalCode,
+        profile.foreignAddress.country,
+      ]
         .filter(Boolean)
         .join(", ")
     : "";

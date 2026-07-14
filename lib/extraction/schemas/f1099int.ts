@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Output contract for the 1099-INT extraction tool call in lib/ai/extractF1099Int.ts.
+// Output contract for the 1099-INT extraction spec in lib/ai/extractionSpecs.ts.
 // Maps 1:1 onto F1099INTData in lib/types.ts. Brokers often issue one
 // "Consolidated 1099" PDF covering INT/DIV/B sections together, and not
 // every section is always present — sectionPresent lets the caller tell a

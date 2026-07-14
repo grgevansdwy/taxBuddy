@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { extractF1099B } from "@/lib/ai/extractF1099B";
+import { parsePdfToMarkdown } from "@/lib/parsing/llamaParse";
+import { extractFromMarkdown } from "@/lib/ai/extractFromMarkdown";
 
 // Nothing is persisted here — per the EXTRACT-then-CONFIRM principle, extracted
 // fields aren't written to the case file until the user confirms them via
@@ -22,12 +23,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "A 1099-B file is required." }, { status: 400 });
   }
 
-  const buffer = await file.arrayBuffer();
-
   try {
-    const extraction = await extractF1099B({
-      f1099bBase64: Buffer.from(buffer).toString("base64"),
-    });
+    const markdown = await parsePdfToMarkdown({ buffer: Buffer.from(await file.arrayBuffer()), fileName: file.name });
+    const extraction = await extractFromMarkdown("f1099b", [{ title: "1099-B", markdown }]);
     return NextResponse.json(extraction);
   } catch (err) {
     console.error("extractF1099B failed:", err);

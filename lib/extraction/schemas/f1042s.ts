@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Output contract for the 1042-S extraction tool call in lib/ai/extractF1042S.ts.
+// Output contract for the 1042-S extraction spec in lib/ai/extractionSpecs.ts.
 // Maps 1:1 onto F1042SData in lib/types.ts. One 1042-S document → one record;
 // a student with multiple 1042-S forms extracts each separately.
 export const F1042SExtractionSchema = z.object({

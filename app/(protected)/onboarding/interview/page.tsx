@@ -24,6 +24,7 @@ export default function InterviewPage() {
   const [workedInUs, setWorkedInUs] = useState<YesNo>("no");
   const [onOPT, setOnOPT] = useState<YesNo>("no");
   const [scholarshipCoverage, setScholarshipCoverage] = useState<ScholarshipCoverage>("none");
+  const [digitalAssets, setDigitalAssets] = useState<YesNo>("no");
   const [interestIncome, setInterestIncome] = useState(false);
   const [dividendIncome, setDividendIncome] = useState(false);
   const [soldAssets, setSoldAssets] = useState(false);
@@ -44,6 +45,9 @@ export default function InterviewPage() {
           setInterestIncome(Boolean(answers.interestIncome));
           setDividendIncome(Boolean(answers.dividendIncome));
           setSoldAssets(Boolean(answers.soldAssets));
+        }
+        if (typeof data.profile?.digitalAssets === "boolean") {
+          setDigitalAssets(data.profile.digitalAssets ? "yes" : "no");
         }
         setCharitableContributions(data.charitableContributions ?? 0);
         setCharitableConfirmed(data.charitableContributionsConfirmed ?? false);
@@ -69,7 +73,11 @@ export default function InterviewPage() {
       const res = await fetch("/api/documents/checklist", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taxYear: CURRENT_SUPPORTED_TAX_YEAR, ...interview }),
+        body: JSON.stringify({
+          taxYear: CURRENT_SUPPORTED_TAX_YEAR,
+          ...interview,
+          digitalAssets: digitalAssets === "yes",
+        }),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => null);
@@ -135,6 +143,22 @@ export default function InterviewPage() {
             </label>
             <label className="flex items-center gap-2 text-sm">
               <RadioGroupItem value="tuition_and_living" /> Yes, it covered tuition &amp; living expenses
+            </label>
+          </RadioGroup>
+        </div>
+
+        <div className="space-y-2">
+          <Label>Did you receive, sell, or exchange any digital assets (crypto) this year?</Label>
+          <p className="text-xs text-muted-foreground">
+            Required on every return regardless of amount — includes receiving, selling, trading, or being paid in
+            crypto. This is different from selling investments for a gain, which we&apos;ll ask about next.
+          </p>
+          <RadioGroup value={digitalAssets} onValueChange={(v) => setDigitalAssets(v as YesNo)} className="flex gap-4">
+            <label className="flex items-center gap-2 text-sm">
+              <RadioGroupItem value="yes" /> Yes
+            </label>
+            <label className="flex items-center gap-2 text-sm">
+              <RadioGroupItem value="no" /> No
             </label>
           </RadioGroup>
         </div>

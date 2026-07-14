@@ -31,6 +31,7 @@ type FieldErrors = Partial<
     | "usCity"
     | "usState"
     | "usPostalCode"
+    | "foreignLine1"
     | "foreignCountry"
     | "foreignPostalCode"
     | "ssnOrItin"
@@ -42,6 +43,13 @@ type FieldErrors = Partial<
 const US_ZIP_RE = /^\d{5}(-\d{4})?$/;
 const SSN_RE = /^\d{3}-?\d{2}-?\d{4}$/;
 const ITIN_RE = /^9\d{2}-?\d{2}-?\d{4}$/;
+
+// Auto-inserts dashes as the user types raw digits, for both SSN and ITIN —
+// they share the same xxx-xx-xxxx shape.
+function formatSsnOrItin(raw: string): string {
+  const digits = raw.replace(/\D/g, "").slice(0, 9);
+  return [digits.slice(0, 3), digits.slice(3, 5), digits.slice(5, 9)].filter(Boolean).join("-");
+}
 
 export default function ProfilePage() {
   const router = useRouter();
@@ -62,6 +70,7 @@ export default function ProfilePage() {
   const [usState, setUsState] = useState("");
   const [usPostalCode, setUsPostalCode] = useState("");
 
+  const [foreignLine1, setForeignLine1] = useState("");
   const [foreignPostalCode, setForeignPostalCode] = useState("");
   const [foreignCountry, setForeignCountry] = useState("");
   const [foreignState, setForeignState] = useState("");
@@ -71,8 +80,6 @@ export default function ProfilePage() {
   const [hasSSN, setHasSSN] = useState<YesNo>("yes");
   const [hasOrAppliedItin, setHasOrAppliedItin] = useState<YesNo>("no");
   const [ssnOrItin, setSsnOrItin] = useState("");
-
-  const [digitalAssets, setDigitalAssets] = useState<YesNo>("no");
 
   // Defaults assume the common case for a year-2+ F-1 filer; overridden below
   // by a saved answer, if one exists, once hydration finishes.
@@ -103,6 +110,7 @@ export default function ProfilePage() {
 
         const foreignAddress = profile.foreignAddress as ForeignAddress | undefined;
         if (foreignAddress) {
+          setForeignLine1(foreignAddress.line1 ?? "");
           setForeignPostalCode(foreignAddress.postalCode ?? "");
           setForeignCountry(foreignAddress.country ?? "");
           setForeignState(foreignAddress.state ?? "");
@@ -114,10 +122,6 @@ export default function ProfilePage() {
           setSsnOrItin(profile.ssnOrItin);
           setHasSSN(/^9/.test(profile.ssnOrItin.trim()) ? "no" : "yes");
           if (/^9/.test(profile.ssnOrItin.trim())) setHasOrAppliedItin("yes");
-        }
-
-        if (typeof profile.digitalAssets === "boolean") {
-          setDigitalAssets(profile.digitalAssets ? "yes" : "no");
         }
 
         if (profile.priorReturn) {
@@ -143,6 +147,7 @@ export default function ProfilePage() {
       errors.usPostalCode = "Enter a valid ZIP code (e.g. 98105 or 98105-1234).";
     }
 
+    if (!foreignLine1.trim()) errors.foreignLine1 = "Street address is required.";
     if (!foreignCountry) errors.foreignCountry = "Country is required.";
     if (!foreignPostalCode.trim()) errors.foreignPostalCode = "Postal code is required.";
 
@@ -193,13 +198,13 @@ export default function ProfilePage() {
             country: "United States",
           },
           foreignAddress: {
+            line1: foreignLine1,
             postalCode: foreignPostalCode,
             country: foreignCountry,
             state: foreignState || undefined,
           },
           filingStatus,
           ssnOrItin,
-          digitalAssets: digitalAssets === "yes",
           priorReturn: {
             filed: priorReturnFiled === "yes",
             year: priorReturnFiled === "yes" ? Number(priorReturnYear) : undefined,
@@ -299,6 +304,14 @@ export default function ProfilePage() {
 
         <div className="space-y-3">
           <Label>Foreign (home country) address</Label>
+          <div className="space-y-1">
+            <Input
+              placeholder="Street address"
+              value={foreignLine1}
+              onChange={(e) => setForeignLine1(e.target.value)}
+            />
+            {fieldErrors.foreignLine1 && <p className="text-xs text-destructive">{fieldErrors.foreignLine1}</p>}
+          </div>
           <div className="grid grid-cols-3 gap-2">
             <Input
               placeholder="State/province (optional)"
@@ -363,7 +376,12 @@ export default function ProfilePage() {
         {hasSSN === "yes" && (
           <div className="space-y-1.5">
             <Label htmlFor="ssn">Social Security Number</Label>
-            <Input id="ssn" placeholder="123-45-6789" value={ssnOrItin} onChange={(e) => setSsnOrItin(e.target.value)} />
+            <Input
+              id="ssn"
+              placeholder="123-45-6789"
+              value={ssnOrItin}
+              onChange={(e) => setSsnOrItin(formatSsnOrItin(e.target.value))}
+            />
             {fieldErrors.ssnOrItin && <p className="text-xs text-destructive">{fieldErrors.ssnOrItin}</p>}
           </div>
         )}
@@ -389,7 +407,12 @@ export default function ProfilePage() {
         {hasSSN === "no" && hasOrAppliedItin === "yes" && (
           <div className="space-y-1.5">
             <Label htmlFor="itin">ITIN</Label>
-            <Input id="itin" placeholder="912-34-5678" value={ssnOrItin} onChange={(e) => setSsnOrItin(e.target.value)} />
+            <Input
+              id="itin"
+              placeholder="912-34-5678"
+              value={ssnOrItin}
+              onChange={(e) => setSsnOrItin(formatSsnOrItin(e.target.value))}
+            />
             {fieldErrors.ssnOrItin && <p className="text-xs text-destructive">{fieldErrors.ssnOrItin}</p>}
           </div>
         )}
@@ -400,22 +423,6 @@ export default function ProfilePage() {
             available yet — you can continue and add your ITIN once you have it.
           </p>
         )}
-
-        <div className="space-y-2">
-          <Label>Did you receive, sell, or exchange any digital assets (crypto) this year?</Label>
-          <p className="text-xs text-muted-foreground">
-            Required on every return regardless of amount — includes receiving, selling, trading, or being paid in
-            crypto. This is different from selling investments for a gain, which we&apos;ll ask about next.
-          </p>
-          <RadioGroup value={digitalAssets} onValueChange={(v) => setDigitalAssets(v as YesNo)} className="flex gap-4">
-            <label className="flex items-center gap-2 text-sm">
-              <RadioGroupItem value="yes" /> Yes
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <RadioGroupItem value="no" /> No
-            </label>
-          </RadioGroup>
-        </div>
 
         <div className="space-y-2">
           <Label>Have you filed a US tax return before?</Label>

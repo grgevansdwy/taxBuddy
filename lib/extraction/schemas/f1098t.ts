@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Output contract for the 1098-T extraction tool call in lib/ai/extractF1098T.ts.
+// Output contract for the 1098-T extraction spec in lib/ai/extractionSpecs.ts.
 // Maps 1:1 onto F1098TData in lib/types.ts.
 export const F1098TExtractionSchema = z.object({
   box1: z.number(), // payments received for qualified tuition and related expenses

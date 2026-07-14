@@ -43,7 +43,7 @@ export default function EligibilityPage() {
   const [extraction, setExtraction] = useState<I94Extraction | null>(null);
   const [visaClass, setVisaClass] = useState("");
   const [firstEntryDate, setFirstEntryDate] = useState("");
-  const [documentNumber, setDocumentNumber] = useState("");
+  const [passportNumber, setPassportNumber] = useState("");
   const [travelHistory, setTravelHistory] = useState<
     I94Extraction["travelHistory"]
   >([]);
@@ -52,6 +52,9 @@ export default function EligibilityPage() {
   const [appliedForGreenCard, setAppliedForGreenCard] = useState<YesNo>("no");
   const [appliedForGreenCardExplanation, setAppliedForGreenCardExplanation] =
     useState("");
+  const [changedVisaType, setChangedVisaType] = useState<YesNo>("no");
+  const [incomeOnlyInWashington, setIncomeOnlyInWashington] =
+    useState<YesNo>("yes");
   const [reasoning, setReasoning] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -66,7 +69,7 @@ export default function EligibilityPage() {
           setVisaClass(saved.visaClass);
           setFirstEntryDate(saved.firstEntryDate);
           setTravelHistory(saved.travelHistory);
-          setDocumentNumber(
+          setPassportNumber(
             (data.profile?.passportNumber as { value?: string } | undefined)
               ?.value ?? "",
           );
@@ -75,6 +78,10 @@ export default function EligibilityPage() {
           setAppliedForGreenCard(saved.appliedForGreenCard ? "yes" : "no");
           setAppliedForGreenCardExplanation(
             saved.appliedForGreenCardExplanation ?? "",
+          );
+          setChangedVisaType(saved.changedVisaType ? "yes" : "no");
+          setIncomeOnlyInWashington(
+            saved.incomeOnlyInWashington === false ? "no" : "yes",
           );
           setSubStep("confirm");
         }
@@ -90,6 +97,7 @@ export default function EligibilityPage() {
     setIsSubmitting(true);
     setError(null);
     try {
+      // Upload and call extraction layer
       const formData = new FormData();
       formData.append("taxYear", String(CURRENT_SUPPORTED_TAX_YEAR));
       formData.append("i94", i94File);
@@ -102,15 +110,16 @@ export default function EligibilityPage() {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? "Extraction failed.");
       }
+
+      // Unpack Extraction into states (prefill next form)
       const data = (await res.json()) as I94Extraction;
       setExtraction(data);
       setVisaClass(data.visaClass);
       setFirstEntryDate(data.firstEntryDate);
-      setDocumentNumber(data.documentNumber);
+      setPassportNumber(data.passportNumber);
       setTravelHistory(data.travelHistory);
 
-      // Store the raw files so they're on file for later extraction/reference,
-      // independent of whether the user finishes confirming this step.
+      // Define function to Store the raw files so they're on file for later extraction/reference,
       const uploadFile = (docType: string, file: File) => {
         const uploadForm = new FormData();
         uploadForm.append("docType", docType);
@@ -120,6 +129,8 @@ export default function EligibilityPage() {
           body: uploadForm,
         });
       };
+
+      // The upload begins here
       await Promise.all([
         uploadFile("i94", i94File),
         uploadFile("travel_history", travelHistoryFile),
@@ -155,7 +166,7 @@ export default function EligibilityPage() {
           taxYear: CURRENT_SUPPORTED_TAX_YEAR,
           visaClass,
           firstEntryDate,
-          documentNumber,
+          passportNumber,
           travelHistory,
           hadEarlierFJMQVisa: hadEarlierFJMQVisa === "yes",
           hasGreenCard: hasGreenCard === "yes",
@@ -164,6 +175,8 @@ export default function EligibilityPage() {
             appliedForGreenCard === "yes"
               ? appliedForGreenCardExplanation
               : undefined,
+          changedVisaType: changedVisaType === "yes",
+          incomeOnlyInWashington: incomeOnlyInWashington === "yes",
         }),
       });
       if (!res.ok) {
@@ -240,11 +253,11 @@ export default function EligibilityPage() {
           </div>
 
           <div className="space-y-1.5">
-            <Label htmlFor="documentNumber">I-94 document number</Label>
+            <Label htmlFor="passportNumber">Passport number</Label>
             <Input
-              id="documentNumber"
-              value={documentNumber}
-              onChange={(e) => setDocumentNumber(e.target.value)}
+              id="passportNumber"
+              value={passportNumber}
+              onChange={(e) => setPassportNumber(e.target.value)}
             />
           </div>
 
@@ -318,6 +331,41 @@ export default function EligibilityPage() {
               />
             </div>
           )}
+
+          <div className="space-y-2">
+            <Label>Have you ever changed your visa type?</Label>
+            <RadioGroup
+              value={changedVisaType}
+              onValueChange={(v) => setChangedVisaType(v as YesNo)}
+              className="flex gap-4"
+            >
+              <label className="flex items-center gap-2 text-sm">
+                <RadioGroupItem value="yes" /> Yes
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <RadioGroupItem value="no" /> No
+              </label>
+            </RadioGroup>
+          </div>
+
+          <div className="space-y-2">
+            <Label>
+              Did you earn income only while physically working or living in
+              Washington State?
+            </Label>
+            <RadioGroup
+              value={incomeOnlyInWashington}
+              onValueChange={(v) => setIncomeOnlyInWashington(v as YesNo)}
+              className="flex gap-4"
+            >
+              <label className="flex items-center gap-2 text-sm">
+                <RadioGroupItem value="yes" /> Yes
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <RadioGroupItem value="no" /> No
+              </label>
+            </RadioGroup>
+          </div>
 
           {error && <p className="text-sm text-destructive">{error}</p>}
 

@@ -1,14 +1,17 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { CURRENT_SUPPORTED_TAX_YEAR } from "@/lib/config/taxYear";
+import type { SchoolInfo } from "@/lib/types";
 
-// Stage 3 "Tax Reduction" input: the one manual figure the deduction rules
-// need (Schedule A gifts-to-charity line). Treaty country is read from
-// profile.citizenship, already confirmed in Stage 1 — no separate ASK here.
-interface ReductionRequestBody {
-  charitableContributions: number;
+interface I20RequestBody {
+  school: SchoolInfo;
+  sevisId: string;
 }
 
+// Nothing extracted is trusted unsupervised — but per the silent
+// extract-and-save pattern used for income docs, there's no confirm screen
+// here: the client extracts (via /api/documents/extract/i20), then calls
+// this route to merge the result into profile immediately.
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {
@@ -18,11 +21,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "unauthorized" }, { status: 401 });
   }
 
-  const body = (await request.json()) as ReductionRequestBody;
+  const body = (await request.json()) as I20RequestBody;
 
   const { data: existing } = await supabase
     .from("filings")
-    .select("interview_answers")
+    .select("profile")
     .eq("user_id", user.id)
     .eq("tax_year", CURRENT_SUPPORTED_TAX_YEAR)
     .maybeSingle();
@@ -31,10 +34,10 @@ export async function POST(request: Request) {
     {
       user_id: user.id,
       tax_year: CURRENT_SUPPORTED_TAX_YEAR,
-      interview_answers: {
-        ...(existing?.interview_answers ?? {}),
-        charitableContributions: body.charitableContributions,
-        charitableContributionsConfirmed: true,
+      profile: {
+        ...(existing?.profile ?? {}),
+        school: body.school,
+        sevisId: body.sevisId,
       },
     },
     { onConflict: "user_id,tax_year" }

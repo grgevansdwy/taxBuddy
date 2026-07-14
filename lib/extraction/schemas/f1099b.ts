@@ -1,6 +1,6 @@
 import { z } from "zod";
 
-// Output contract for the 1099-B extraction tool call in lib/ai/extractF1099B.ts.
+// Output contract for the 1099-B extraction spec in lib/ai/extractionSpecs.ts.
 // realizedGainLoss is deliberately NOT extracted — it's derived downstream as
 // proceeds - costBasis (see lib/rules/forms/scheduleNEC.ts) so a mis-read gain/loss
 // figure can never diverge from the two numbers it's supposed to summarize.

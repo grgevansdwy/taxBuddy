@@ -8,12 +8,14 @@ interface EligibilityRequestBody {
   taxYear: number;
   visaClass: string;
   firstEntryDate: string;
-  documentNumber: string;
+  passportNumber: string;
   travelHistory: I94TravelRow[];
   hadEarlierFJMQVisa: boolean;
   hasGreenCard: boolean;
   appliedForGreenCard: boolean;
   appliedForGreenCardExplanation?: string;
+  changedVisaType: boolean;
+  incomeOnlyInWashington: boolean;
 }
 
 export async function POST(request: Request) {
@@ -37,6 +39,8 @@ export async function POST(request: Request) {
     hasGreenCard: body.hasGreenCard,
     appliedForGreenCard: body.appliedForGreenCard,
     appliedForGreenCardExplanation: body.appliedForGreenCardExplanation,
+    changedVisaType: body.changedVisaType,
+    incomeOnlyInWashington: body.incomeOnlyInWashington,
   });
 
   const { data: existing } = await supabase
@@ -64,11 +68,13 @@ export async function POST(request: Request) {
         hasGreenCard: body.hasGreenCard,
         appliedForGreenCard: body.appliedForGreenCard,
         appliedForGreenCardExplanation: body.appliedForGreenCardExplanation,
+        changedVisaType: body.changedVisaType,
+        incomeOnlyInWashington: body.incomeOnlyInWashington,
       },
       profile: {
         ...(existing?.profile ?? {}),
         passportNumber: {
-          value: body.documentNumber,
+          value: body.passportNumber,
           confidence: 1,
           confirmed: true,
           source: "i94",

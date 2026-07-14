@@ -82,6 +82,13 @@ export function evaluateEligibility(input: EligibilityInput): EligibilityResult 
     passed = false;
     reasoning =
       "You mentioned being in the US on an F, J, M, or Q visa in an earlier year we can't verify from this I-94 alone, so we can't confirm you're still within your first five calendar years. Not supported yet.";
+  } else if (input.changedVisaType) {
+    passed = false;
+    reasoning = "You mentioned changing visa type at some point, which we can't account for yet. Not supported yet.";
+  } else if (!input.incomeOnlyInWashington) {
+    passed = false;
+    reasoning =
+      "We currently only support filers whose income was earned entirely while physically working or living in Washington State. Not supported yet.";
   } else if (exemptYearsUsed > 5) {
     passed = false;
     reasoning = `Your I-94 shows you first entered in ${firstEntryYear}, which is more than five calendar years ago. You're treated as a resident for tax purposes, so we can't help with your filing yet.`;

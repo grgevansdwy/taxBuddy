@@ -6,6 +6,7 @@ import type { DocType, InterviewAnswers } from "@/lib/types";
 
 interface ChecklistRequestBody extends InterviewAnswers {
   taxYear: number;
+  digitalAssets: boolean;
 }
 
 // Lets the Stage 2 upload page re-fetch the checklist Stage 1 already computed,
@@ -40,18 +41,38 @@ export async function POST(request: Request) {
   }
 
   const body = (await request.json()) as ChecklistRequestBody;
-  const { taxYear, ...interview } = body;
+  const { taxYear, digitalAssets, ...interview } = body;
 
   const documents = computeDocumentChecklist(interview);
   const explanation = explainChecklist(documents);
+
+  const { data: existing } = await supabase
+    .from("filings")
+    .select("profile, interview_answers")
+    .eq("user_id", user.id)
+    .eq("tax_year", taxYear)
+    .maybeSingle();
 
   const { error } = await supabase.from("filings").upsert(
     {
       user_id: user.id,
       tax_year: taxYear,
       stage: "documents",
-      interview_answers: interview,
+      // charitableContributions/charitableContributionsConfirmed live in
+      // this same column but are saved separately via /api/reduction —
+      // merge rather than replace so this write can't clobber those.
+      interview_answers: {
+        ...(existing?.interview_answers ?? {}),
+        ...interview,
+      },
       documents_needed: documents,
+      // digitalAssets is asked on this page but lives on profile (it's a
+      // 1040-NR-level field, not a documents-checklist input) — merge it in
+      // rather than replacing the whole profile object.
+      profile: {
+        ...(existing?.profile ?? {}),
+        digitalAssets,
+      },
     },
     { onConflict: "user_id,tax_year" }
   );
