@@ -48,7 +48,7 @@ export async function POST(request: Request) {
 
   const { data: existing } = await supabase
     .from("filings")
-    .select("profile, interview_answers")
+    .select("profile_page, interview_page")
     .eq("user_id", user.id)
     .eq("tax_year", taxYear)
     .maybeSingle();
@@ -61,16 +61,16 @@ export async function POST(request: Request) {
       // charitableContributions/charitableContributionsConfirmed live in
       // this same column but are saved separately via /api/reduction —
       // merge rather than replace so this write can't clobber those.
-      interview_answers: {
-        ...(existing?.interview_answers ?? {}),
+      interview_page: {
+        ...(existing?.interview_page ?? {}),
         ...interview,
       },
       documents_needed: documents,
-      // digitalAssets is asked on this page but lives on profile (it's a
-      // 1040-NR-level field, not a documents-checklist input) — merge it in
-      // rather than replacing the whole profile object.
-      profile: {
-        ...(existing?.profile ?? {}),
+      // digitalAssets is asked on this page but lives on profile_page (it's
+      // a 1040-NR-level field, not a documents-checklist input) — merge it
+      // in rather than replacing the whole profile object.
+      profile_page: {
+        ...(existing?.profile_page ?? {}),
         digitalAssets,
       },
     },

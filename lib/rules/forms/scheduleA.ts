@@ -1,6 +1,6 @@
 import type { FilerProfile } from "@/lib/types";
 import type { IncomeEngineResult } from "@/lib/rules/income";
-import { formatSsnDigits, formatUsdWhole, splitLegalName } from "@/lib/format";
+import { formatSsnDigits, formatUsd, splitLegalName } from "@/lib/format";
 
 // Pure mapping from the Stage 5 income engine to Schedule A (Form 1040-NR)
 // line values. Scope: gifts to US charities only (line 2) — no state/local
@@ -17,8 +17,8 @@ export function computeScheduleA(args: { profile: Partial<FilerProfile>; income:
   return {
     "schedA.name": [firstNameAndInitial, lastName].filter(Boolean).join(" "),
     "schedA.tin": formatSsnDigits(profile.ssnOrItin),
-    "schedA.2": formatUsdWhole(total),
-    "schedA.5": formatUsdWhole(total),
-    "schedA.8": formatUsdWhole(total), // → Form 1040-NR line 12
+    "schedA.2": formatUsd(total),
+    "schedA.5": formatUsd(total),
+    "schedA.8": formatUsd(total), // → Form 1040-NR line 12
   };
 }

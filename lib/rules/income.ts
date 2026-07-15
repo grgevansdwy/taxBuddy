@@ -1,6 +1,8 @@
 import type {
   F1042SData,
   F1099BData,
+  F1099BTransaction,
+  F1099DAData,
   F1099DIVData,
   F1099INTData,
   Finding,
@@ -8,6 +10,7 @@ import type {
   ResidencyResult,
   TraceEvent,
   TreatyRule,
+  W2Data,
 } from "@/lib/types";
 import { TAX_YEAR_CONFIG } from "@/lib/config/taxYear";
 import { findTreatyRuleForCountryName } from "@/lib/rules/treaties";
@@ -18,13 +21,20 @@ import { findTreatyRuleForCountryName } from "@/lib/rules/treaties";
 // form modules in lib/rules/forms/ format these numbers into line strings;
 // this file just computes them once so every form agrees with every other.
 //
-// Scope: passive income (interest/dividends/capital gains) + scholarship
-// only. No wages, no FICA — see lib/rules/forms/f8843.ts's sibling modules
-// for the same scoping note.
+// Scope: passive income (interest/dividends/capital gains) + scholarship +
+// wages (box 1 only — no FICA, no state tax) — see lib/rules/forms/f8843.ts's
+// sibling modules for the same scoping note.
 
 const SCHOLARSHIP_INCOME_CODE = "16"; // 1042-S box 1, per F1042SData's own comment in lib/types.ts
 
 export interface IncomeEngineResult {
+  // ---- Wages (Form 1040-NR line 1a — treaty exemption is a per-year dollar cap, if the country has one) ----
+  wagesGross: number; // sum of W-2 box1 across all employers
+  wagesTreatyExempt: number;
+  wagesTaxable: number; // wagesGross - wagesTreatyExempt
+  wagesWithheld: number; // sum of W-2 box2 → 1040-NR line 25a
+  wagesTreatyRule: TreatyRule | null;
+
   // ---- Scholarship (Form 1040-NR Schedule 1 line 8r equivalent) ----
   scholarshipTreatyExempt: number; // portion excluded under a student-article treaty
   scholarshipTaxable: number; // scholarship1042SReported - treatyExempt
@@ -48,6 +58,7 @@ export interface IncomeEngineResult {
   capitalGainsTaxable: boolean; // true only if presentDays >= threshold AND net > 0
   capitalGainsTax: number;
   capitalGainsWithheld: number;
+  capitalGainsTransactions: F1099BTransaction[]; // every lot, 1099-B and 1099-DA combined, in document order — line 16's itemized rows + the overflow attachment both read from this
 
   // ---- Deduction (Schedule A or India standard deduction) ----
   charitableContributions: number;
@@ -55,7 +66,9 @@ export interface IncomeEngineResult {
   deduction: number;
 
   // ---- Totals ----
-  effectivelyConnectedIncome: number; // = scholarshipTaxable (no wages this phase)
+  hasReportableIncome: boolean; // any taxable income at all — false means Form 8843 is the only form this filer needs
+  totalTreatyExemptIncome: number; // wagesTreatyExempt + scholarshipTreatyExempt — feeds both 1040-NR line 1k and Schedule OI item L's total, so they can never drift apart
+  effectivelyConnectedIncome: number; // = wagesTaxable + scholarshipTaxable
   taxableIncome: number;
   effectivelyConnectedTax: number; // graduated-bracket tax
   necTax: number; // dividendsTax + capitalGainsTax
@@ -74,17 +87,47 @@ export function computeIncomeEngine(args: {
   taxYear: number;
   profile: Partial<FilerProfile>;
   residency: ResidencyResult;
+  w2s: W2Data[];
   f1042s: F1042SData[];
   f1099ints: F1099INTData[];
   f1099divs: F1099DIVData[];
   f1099bs: F1099BData[];
+  f1099das: F1099DAData[];
   charitableContributions: number;
 }): IncomeEngineResult {
-  const { taxYear, profile, residency, f1042s, f1099ints, f1099divs, f1099bs, charitableContributions } = args;
+  const { taxYear, profile, residency, w2s, f1042s, f1099ints, f1099divs, f1099bs, f1099das, charitableContributions } =
+    args;
   const config = TAX_YEAR_CONFIG;
   const country = profile.citizenship?.value ?? "";
   const findings: Finding[] = [];
   const trace: TraceEvent[] = [];
+
+  // ---------- Wages ----------
+  // Treaty exemption (if the country has one) is a flat per-year dollar cap
+  // on services connected to study/research/training or necessary for
+  // maintenance — e.g. Indonesia's Art 19(1)(b)(iii), $2,000/year. Adding
+  // another country's wage exemption is just a new row in treaties.ts.
+  const wagesGross = sum(w2s.map((w2) => w2.box1));
+  const wagesWithheld = sum(w2s.map((w2) => w2.box2));
+  const wagesTreatyRule = findTreatyRuleForCountryName(country, "wages", taxYear);
+  const wagesTreatyExempt = wagesTreatyRule ? Math.min(wagesGross, wagesTreatyRule.exempt_amount ?? Infinity) : 0;
+  const wagesTaxable = wagesGross - wagesTreatyExempt;
+
+  if (wagesTreatyExempt > 0) {
+    findings.push({
+      id: "wages-treaty-exempt",
+      kind: "treaty",
+      headline: `$${wagesTreatyExempt} of your wages is exempt under the US-${country} treaty.`,
+      amountUsd: wagesTreatyExempt,
+      detail: wagesTreatyRule?.citation ?? "",
+    });
+    trace.push({
+      rule: "treaty.wages",
+      inputs: { country, wagesGross },
+      output: wagesTreatyExempt,
+      citation: wagesTreatyRule?.citation,
+    });
+  }
 
   // ---------- Scholarship ----------
   // Taxable scholarship income comes straight from the school's own 1042-S
@@ -168,7 +211,9 @@ export function computeIncomeEngine(args: {
   }
 
   // ---------- Capital gains (183-day rule, Schedule NEC) ----------
-  const allTransactions = f1099bs.flatMap((doc) => doc.transactions);
+  // 1099-B (stocks/ETFs) and 1099-DA (digital assets) feed the same total —
+  // Schedule NEC line 16 doesn't distinguish a stock sale from a crypto sale.
+  const allTransactions = [...f1099bs, ...f1099das].flatMap((doc) => doc.transactions);
   const capitalGainsNet = sum(allTransactions.map((tx) => tx.realizedGainLoss));
   const capitalGainsWithheld = sum(allTransactions.map((tx) => tx.box4FederalTaxWithheld));
   const capitalGainsPresentDays = residency.daysPresent.taxYear;
@@ -203,33 +248,47 @@ export function computeIncomeEngine(args: {
   // exemption already substantiated by the withholding agent's 1042-S. India's
   // Article 21(2) standard-deduction claim is never covered by that exception
   // (per the proposal's explicit "if india treaty" rule), so it always needs 8833.
+  // Wage treaty exemptions (e.g. Indonesia's Art 19(1)(b)(iii)) are their own
+  // standard exception per the Form 8833 instructions — student/trainee
+  // compensation articles never require 8833 — so wagesTreatyExempt never
+  // factors in here.
   const needsForm8833 =
     (scholarshipTreatyExempt > 0 && !scholarshipExemptSubstantiatedBy1042S) || !!usesStandardDeduction;
 
   // ---------- Totals ----------
-  const effectivelyConnectedIncome = scholarshipTaxable; // no wages this phase
+  const effectivelyConnectedIncome = wagesTaxable + scholarshipTaxable;
   const taxableIncome = Math.max(0, effectivelyConnectedIncome - deduction);
   const brackets = profile.filingStatus === "married_nra" ? config.brackets_mfs : config.brackets_single;
   const effectivelyConnectedTax = round2(bracketTax(taxableIncome, brackets));
   const necTax = dividendsTax + capitalGainsTax;
   const totalTax = round2(effectivelyConnectedTax + necTax);
   const totalWithholding = round2(
-    interestWithheld + dividendsWithheld + capitalGainsWithheld + scholarship1042SWithheld
+    wagesWithheld + interestWithheld + dividendsWithheld + capitalGainsWithheld + scholarship1042SWithheld
   );
   const refundOrDue = round2(totalWithholding - totalTax);
 
-  const totalIncomeSummary = scholarshipTaxable + interestExempt + dividendsGross + capitalGainsNet;
+  const totalIncomeSummary = wagesTaxable + scholarshipTaxable + interestExempt + dividendsGross + capitalGainsNet;
   if (totalIncomeSummary > 0) {
     findings.push({
       id: "income-completeness",
       kind: "completeness",
-      headline: `Total US income found: $${round2(scholarshipTaxable + dividendsGross + Math.max(capitalGainsNet, 0))} taxable, plus $${interestExempt} exempt bank interest.`,
+      headline: `Total US income found: $${round2(wagesTaxable + scholarshipTaxable + dividendsGross + Math.max(capitalGainsNet, 0))} taxable, plus $${interestExempt} exempt bank interest.`,
       amountUsd: totalIncomeSummary,
       detail: "Confirm this covers everything, or add anything missing.",
     });
   }
 
+  const hasReportableIncome = wagesTaxable > 0 || scholarshipTaxable > 0 || dividendsGross > 0 || capitalGainsTaxable;
+  const totalTreatyExemptIncome = round2(wagesTreatyExempt + scholarshipTreatyExempt);
+
   return {
+    hasReportableIncome,
+    totalTreatyExemptIncome,
+    wagesGross,
+    wagesTreatyExempt,
+    wagesTaxable,
+    wagesWithheld,
+    wagesTreatyRule,
     scholarshipTreatyExempt,
     scholarshipTaxable,
     scholarship1042SReported,
@@ -246,6 +305,7 @@ export function computeIncomeEngine(args: {
     capitalGainsTaxable,
     capitalGainsTax,
     capitalGainsWithheld,
+    capitalGainsTransactions: allTransactions,
     charitableContributions,
     usesStandardDeduction,
     deduction,

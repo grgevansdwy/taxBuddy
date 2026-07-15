@@ -4,7 +4,7 @@
 --
 -- One row per user per tax year. JSON/JSONB columns are shaped like the
 -- matching types in lib/types.ts — see that file for the authoritative shape
--- of each blob (FilerProfile, ResidencyResult, DocType[], F1042SData[], etc).
+-- of each blob (EligibilityPageData, FilerProfile, DocType[], F1042SData[], etc).
 
 drop table if exists public.filings cascade;
 
@@ -14,28 +14,28 @@ create table public.filings (
   tax_year int not null,
   stage text not null default 'eligibility',
 
-  -- Stage 0-1: identity + residency
-  profile jsonb not null default '{}',
-  residency jsonb,
-  eligibility_input jsonb,
+  -- Stage 0: confirmed I-94/eligibility input plus what evaluateEligibility()
+  -- computed from it (residency), stored together — see
+  -- lib/types.ts's EligibilityPageData for the shape.
+  eligibility_page jsonb,
 
-  -- Stage 1: interview answers + the derived upload checklist
-  interview_answers jsonb not null default '{}',
+  -- Stage 1a: filer identity — see lib/types.ts's FilerProfile.
+  profile_page jsonb not null default '{}',
+
+  -- Stage 1b: interview answers + the derived upload checklist. Also holds
+  -- charitableContributions/charitableContributionsConfirmed (Stage 3) —
+  -- no separate columns for those, see lib/types.ts's InterviewAnswers.
+  interview_page jsonb not null default '{}',
   documents_needed jsonb not null default '[]',
 
   -- Stage 2: raw uploaded files (DocType -> {fileName, path, uploadedAt}),
   -- and the structured data extracted from the income documents.
-  uploaded_documents jsonb not null default '{}',
-  f1098t jsonb,
+  documents_upload jsonb not null default '{}',
   f1042s jsonb not null default '[]',
   f1099ints jsonb not null default '[]',
   f1099divs jsonb not null default '[]',
   f1099bs jsonb not null default '[]',
-
-  -- Stage 3: the one manual deduction input, with an explicit confirmed
-  -- flag so "$0, never asked" can never be confused with "user said $0".
-  charitable_contributions numeric not null default 0,
-  charitable_contributions_confirmed boolean not null default false,
+  w2s jsonb not null default '[]',
 
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),

@@ -24,7 +24,9 @@ export async function lookupSchoolContactInfo(args: {
     input:
       `Find this publicly available contact information for "${args.schoolName}", using the school's ` +
       `official website:\n` +
-      `1. The institution's official mailing address (main campus or registrar address).\n` +
+      `1. The institution's official mailing address (main campus or registrar address) — street/building/box ` +
+      `number, street name, city, state, and ZIP ONLY. Do not include the institution's name or any campus ` +
+      `disambiguator (e.g. "- Seattle") in this field; it's printed separately.\n` +
       `2. The institution's general phone number.\n` +
       `3. The phone number for the international student office / international programs office — the ` +
       `office that issues Form I-20s and where the Designated School Official "${args.dsoName}" works.\n\n` +
@@ -36,7 +38,11 @@ export async function lookupSchoolContactInfo(args: {
         schema: {
           type: "object",
           properties: {
-            address: { type: "string", description: "Institution's official mailing address." },
+            address: {
+              type: "string",
+              description:
+                "Institution's official mailing address — street/building/box number, street, city, state, ZIP only. No institution name or campus disambiguator.",
+            },
             phone: { type: "string", description: "Institution's general phone number." },
             dsoPhone: { type: "string", description: "International student/programs office phone number." },
           },

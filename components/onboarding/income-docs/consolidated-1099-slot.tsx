@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { FileDropSlot } from "@/components/onboarding/file-drop-slot";
-import type { F1099BData, F1099BTransaction, F1099DIVData, F1099INTData } from "@/lib/types";
+import type { F1099BData, F1099BTransaction, F1099DAData, F1099DIVData, F1099INTData } from "@/lib/types";
 
 type Phase = "upload" | "processing";
 
@@ -27,31 +27,37 @@ async function saveField(field: string, value: unknown) {
   });
 }
 
-// Brokers issue one "Consolidated 1099" PDF covering the INT/DIV/B sections
-// together (this is what a real Robinhood/Fidelity/Schwab 1099 looks like) —
-// one upload, one dropzone. Each of the 3 existing extraction endpoints runs
-// against the same file and reports sectionPresent so a document missing one
-// section (e.g. dividends but no broker sales) doesn't fabricate an entry
-// for it. No confirm step — extraction results are saved automatically;
-// per-box numbers are intentionally not shown here (see conversation).
+// Brokers issue one "Consolidated 1099" PDF covering the INT/DIV/B (and,
+// increasingly, DA/digital-asset) sections together (this is what a real
+// Robinhood/Fidelity/Schwab 1099 looks like) — one upload, one dropzone.
+// Each of the 4 extraction endpoints runs against the same file and reports
+// sectionPresent so a document missing one section (e.g. dividends but no
+// broker sales) doesn't fabricate an entry for it. No confirm step —
+// extraction results are saved automatically; per-box numbers are
+// intentionally not shown here (see conversation).
 export function Consolidated1099Slot({
   initialInts,
   initialDivs,
   initialBs,
+  initialDas,
   onIntsChange,
   onDivsChange,
   onBsChange,
+  onDasChange,
 }: {
   initialInts: F1099INTData[];
   initialDivs: F1099DIVData[];
   initialBs: F1099BData[];
+  initialDas: F1099DAData[];
   onIntsChange?: (items: F1099INTData[]) => void;
   onDivsChange?: (items: F1099DIVData[]) => void;
   onBsChange?: (items: F1099BData[]) => void;
+  onDasChange?: (items: F1099DAData[]) => void;
 }) {
   const [ints, setInts] = useState<F1099INTData[]>(initialInts);
   const [divs, setDivs] = useState<F1099DIVData[]>(initialDivs);
   const [bs, setBs] = useState<F1099BData[]>(initialBs);
+  const [das, setDas] = useState<F1099DAData[]>(initialDas);
   const [phase, setPhase] = useState<Phase>("upload");
   const [error, setError] = useState<string | null>(null);
   const [lastFound, setLastFound] = useState<string[] | null>(null);
@@ -68,6 +74,10 @@ export function Consolidated1099Slot({
     onBsChange?.(bs);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bs]);
+  useEffect(() => {
+    onDasChange?.(das);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [das]);
 
   async function handleFile(file: File | null) {
     if (!file) return;
@@ -79,7 +89,7 @@ export function Consolidated1099Slot({
       uploadForm.append("docType", "f1099combined");
       uploadForm.append("file", file);
 
-      const [, intResult, divResult, bResult] = await Promise.all([
+      const [, intResult, divResult, bResult, daResult] = await Promise.all([
         fetch("/api/documents/upload", { method: "POST", body: uploadForm }),
         extractSection<F1099INTData & { sectionPresent: boolean; confidence: number }>(
           file,
@@ -97,12 +107,19 @@ export function Consolidated1099Slot({
             confidence: number;
           }
         >(file, "f1099b", "/api/documents/extract/f1099b"),
+        extractSection<
+          { payerName: string; transactions: Omit<F1099BTransaction, "realizedGainLoss">[] } & {
+            sectionPresent: boolean;
+            confidence: number;
+          }
+        >(file, "f1099da", "/api/documents/extract/f1099da"),
       ]);
 
       const found: string[] = [];
       let nextInts = ints;
       let nextDivs = divs;
       let nextBs = bs;
+      let nextDas = das;
 
       if (intResult) {
         nextInts = [...ints, intResult];
@@ -116,9 +133,13 @@ export function Consolidated1099Slot({
         nextBs = [...bs, { payerName: bResult.payerName, transactions: bResult.transactions.map((t) => ({ ...t, realizedGainLoss: 0 })) }];
         found.push("broker transactions");
       }
+      if (daResult) {
+        nextDas = [...das, { payerName: daResult.payerName, transactions: daResult.transactions.map((t) => ({ ...t, realizedGainLoss: 0 })) }];
+        found.push("digital asset transactions");
+      }
 
       if (found.length === 0) {
-        setError("Couldn't find an interest, dividend, or broker-transaction section on this document.");
+        setError("Couldn't find an interest, dividend, broker-transaction, or digital-asset section on this document.");
         setPhase("upload");
         return;
       }
@@ -127,11 +148,13 @@ export function Consolidated1099Slot({
         intResult ? saveField("f1099ints", nextInts) : Promise.resolve(),
         divResult ? saveField("f1099divs", nextDivs) : Promise.resolve(),
         bResult ? saveField("f1099bs", nextBs) : Promise.resolve(),
+        daResult ? saveField("f1099das", nextDas) : Promise.resolve(),
       ]);
 
       setInts(nextInts);
       setDivs(nextDivs);
       setBs(nextBs);
+      setDas(nextDas);
       setLastFound(found);
       setPhase("upload");
     } catch (err) {
@@ -140,21 +163,25 @@ export function Consolidated1099Slot({
     }
   }
 
-  const totalCount = ints.length + divs.length + bs.length;
+  const totalCount = ints.length + divs.length + bs.length + das.length;
+  const summary = [
+    ints.length > 0 && `${ints.length} interest`,
+    divs.length > 0 && `${divs.length} dividend`,
+    bs.length > 0 && `${bs.length} broker`,
+    das.length > 0 && `${das.length} digital asset`,
+  ]
+    .filter(Boolean)
+    .join(", ");
 
   return (
     <div className="space-y-1.5">
       {totalCount > 0 && (
         <p className="text-xs text-muted-foreground">
-          On file: {ints.length > 0 && `${ints.length} interest`}
-          {ints.length > 0 && (divs.length > 0 || bs.length > 0) && ", "}
-          {divs.length > 0 && `${divs.length} dividend`}
-          {divs.length > 0 && bs.length > 0 && ", "}
-          {bs.length > 0 && `${bs.length} broker`} document{totalCount === 1 ? "" : "s"} confirmed.
+          On file: {summary} document{totalCount === 1 ? "" : "s"} confirmed.
         </p>
       )}
       <FileDropSlot
-        label={totalCount > 0 ? "Add another 1099" : "1099 (Interest / Dividends / Broker)"}
+        label={totalCount > 0 ? "Add another 1099" : "1099 (Interest / Dividends / Broker / Digital Assets)"}
         description={phase === "processing" ? "Reading your document..." : undefined}
         file={null}
         onChange={handleFile}

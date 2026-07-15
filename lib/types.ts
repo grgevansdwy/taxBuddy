@@ -70,7 +70,7 @@ export interface FilerProfile {
   filingStatus: FilingStatus;  //-
   ssnOrItin: string;  //-
   digitalAssets: boolean;  //-
-  priorReturn: { filed: boolean; year?: number };
+  priorReturn: { filed: boolean; year?: number; form?: string };
 
   // Extracted from I-20
   school: SchoolInfo;
@@ -165,6 +165,16 @@ export interface F1099BData {
   transactions: F1099BTransaction[];
 }
 
+// 1099-DA — proceeds from digital asset (crypto) broker transactions. Same
+// transaction shape as 1099-B: Schedule NEC line 16 doesn't distinguish a
+// stock sale from a digital-asset disposal, both just need description/
+// dates/proceeds/basis, so income.ts combines f1099bs and f1099das into the
+// same capital-gains total and the same attachment rows.
+export interface F1099DAData {
+  payerName: string;
+  transactions: F1099BTransaction[];
+}
+
 // ---------- Engine Input ----------
 export interface FilingInput {
   taxYear: number;
@@ -177,6 +187,7 @@ export interface FilingInput {
   f1099ints: F1099INTData[];
   f1099divs: F1099DIVData[];
   f1099bs: F1099BData[];
+  f1099das: F1099DAData[];
 
   // Manual inputs
   charitableContributions: number; // Schedule A line 4
@@ -272,6 +283,15 @@ export interface EligibilityInput {
 export interface EligibilityResult {
   passed: boolean; // overall Stage 0 gate (visa + green card + tax year + 5-year rule)
   reasoning: string; // plain-English PASS/NO-PASS explanation for the UI
+  residency: ResidencyResult;
+}
+
+// What actually gets persisted in the eligibility_page column: the
+// confirmed input plus what evaluateEligibility() computed from it. Kept
+// separate from EligibilityInput (the pure function-argument shape) so
+// evaluateEligibility()'s signature doesn't have to accept the thing it's
+// about to produce.
+export interface EligibilityPageData extends EligibilityInput {
   residency: ResidencyResult;
 }
 

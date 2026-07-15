@@ -23,7 +23,18 @@ export async function fillPdfForm(
 
     if (entry.type === "text") {
       if (!value) continue;
-      form.getTextField(entry.field).setText(value);
+      // Some official fields cap length below what we need to print (e.g.
+      // 8843 line 11 is 1 char on the PDF but we want the full "F-1") — only
+      // lift the cap when the value actually needs it. Some fields (e.g. the
+      // TIN box) are "combed": maxLength also drives how pdf-lib spaces
+      // characters into that field's printed boxes, so removing it
+      // unconditionally broke that box's layout even when the value fit fine.
+      const textField = form.getTextField(entry.field);
+      const maxLength = textField.getMaxLength();
+      if (maxLength !== undefined && value.length > maxLength) {
+        textField.removeMaxLength();
+      }
+      textField.setText(value);
     } else if (entry.type === "checkboxSingle") {
       if (value === "yes") form.getCheckBox(entry.field).check();
     } else {

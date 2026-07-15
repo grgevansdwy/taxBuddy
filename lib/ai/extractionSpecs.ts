@@ -27,6 +27,10 @@ import {
   F1099BExtractionSchema,
   type F1099BExtraction,
 } from "@/lib/extraction/schemas/f1099b";
+import {
+  F1099DAExtractionSchema,
+  type F1099DAExtraction,
+} from "@/lib/extraction/schemas/f1099da";
 
 // Single source of truth for "what does extracting document type X need":
 // system prompt + JSON schema + Zod schema + how many documents it expects.
@@ -41,7 +45,8 @@ export type ExtractionKind =
   | "f1042s"
   | "f1099int"
   | "f1099div"
-  | "f1099b";
+  | "f1099b"
+  | "f1099da";
 
 export interface ExtractionKindResult {
   i94: I94Extraction;
@@ -51,6 +56,7 @@ export interface ExtractionKindResult {
   f1099int: F1099IntExtraction;
   f1099div: F1099DivExtraction;
   f1099b: F1099BExtraction;
+  f1099da: F1099DAExtraction;
 }
 
 interface ExtractionSpec<T> {
@@ -432,14 +438,19 @@ export const EXTRACTION_SPECS: {
   f1099b: {
     systemPrompt:
       "You extract fields from a US Form 1099-B (Proceeds From Broker and " +
-      "Barter Exchange Transactions) for an F-1 student's tax filing. The " +
-      "document may be a standalone 1099-B or one section of a broker's " +
-      "consolidated 1099 that also covers interest and dividends — only report " +
-      "on the 1099-B section. If there is no 1099-B section anywhere in the " +
-      "document, set sectionPresent to false and leave transactions empty " +
-      "rather than guessing. Extract every transaction row exactly as printed; " +
-      "do not infer or guess a value that isn't visible, and do not compute " +
-      "gain/loss yourself.",
+      "Barter Exchange Transactions) for an F-1 student's tax filing. You may " +
+      "be shown a standalone 1099-B, one section of a broker's consolidated " +
+      "1099 that also covers interest and dividends, or just a SINGLE PAGE of " +
+      "a longer multi-page 1099-B (brokers split sales into several tables — " +
+      "short-term/long-term, covered/noncovered — each spanning one or more " +
+      "pages, often repeating the column headers on each page). Only report on " +
+      "1099-B sales-transaction tables. If this page has no 1099-B transaction " +
+      "table on it (e.g. it's a summary page, instructions, or a different " +
+      "form section), set sectionPresent to false and leave transactions empty " +
+      "rather than guessing. Extract EVERY transaction row on this page exactly " +
+      "as printed, including every individual lot under a security's heading — " +
+      "do not skip rows, do not stop after the first security, do not infer or " +
+      "guess a value that isn't visible, and do not compute gain/loss yourself.",
     jsonSchemaName: "record_f1099b_extraction",
     jsonSchema: {
       type: "object",
@@ -508,5 +519,106 @@ export const EXTRACTION_SPECS: {
     schema: F1099BExtractionSchema,
     instruction: "Extract every transaction from the 1099-B document above.",
     documentTitles: ["1099-B"],
+  },
+  f1099da: {
+    systemPrompt:
+      "You extract fields from a US Form 1099-DA (Digital Asset Proceeds " +
+      "From Broker Transactions) for an F-1 student's tax filing — the newer " +
+      "crypto/digital-asset counterpart to Form 1099-B, reporting sales of " +
+      "assets like Bitcoin, Ethereum, or other tokens. You may be shown a " +
+      "standalone 1099-DA, one section of a broker's consolidated 1099, or " +
+      "just a SINGLE PAGE of a longer multi-page 1099-DA (brokers split sales " +
+      "into several tables — short-term/long-term, covered/noncovered — each " +
+      "spanning one or more pages, often repeating the column headers on each " +
+      "page). CRITICAL: 1099-B (stocks/ETFs/securities) and 1099-DA (digital " +
+      "assets) look almost identical — same column layout, sometimes the same " +
+      "'CUSIP' word even appears in both headers — and a consolidated " +
+      "statement's 1099-B section can run many pages, so you may be shown a " +
+      "1099-B continuation page with no fresh section title on it. Use the " +
+      "ROW ITSELF to tell them apart, not just the page header: a 1099-B row's " +
+      "description names a company/fund and includes an actual CUSIP number " +
+      "plus 'Symbol:' (e.g. 'EXXON MOBIL CORPORATION / CUSIP: 30231G102 / " +
+      "Symbol:', 'INVESCO QQQ TRUST... / CUSIP: 46090E103'); a 1099-DA row " +
+      "names a digital asset (e.g. Bitcoin, Solana, Dogecoin) with a short " +
+      "DTIF code and NO real CUSIP number (e.g. 'Bitcoin / 4H95J0R2X'). If a " +
+      "row's description contains an actual CUSIP number, it belongs to " +
+      "1099-B — do NOT include it here, even if it's on a page you're told " +
+      "might contain 1099-DA data. Only report genuine digital-asset rows. If " +
+      "this page has no genuine 1099-DA transaction table on it (e.g. it's a " +
+      "summary page, instructions, a 1099-B continuation page, or a different " +
+      "form section), set sectionPresent to false and leave transactions " +
+      "empty rather than guessing. Extract EVERY genuine digital-asset " +
+      "transaction row on this page exactly as printed, including every " +
+      "individual lot under an asset's heading — do not skip rows, do not " +
+      "stop after the first asset, do not infer or guess a value that isn't " +
+      "visible, and do not compute gain/loss yourself.",
+    jsonSchemaName: "record_f1099da_extraction",
+    jsonSchema: {
+      type: "object",
+      properties: {
+        sectionPresent: {
+          type: "boolean",
+          description:
+            "True if a 1099-DA transaction table actually appears on this page, false if it doesn't.",
+        },
+        payerName: { type: "string", description: "The broker's name." },
+        transactions: {
+          type: "array",
+          description:
+            "Every transaction row on this page, in the order they appear.",
+          items: {
+            type: "object",
+            properties: {
+              description: {
+                type: "string",
+                description: "The digital asset's name, e.g. 'Bitcoin' or 'Solana SOL'.",
+              },
+              dateAcquired: {
+                type: ["string", "null"],
+                description:
+                  "ISO yyyy-mm-dd. Null if reported as 'various' or unknown.",
+              },
+              dateSold: {
+                type: "string",
+                description: "ISO yyyy-mm-dd.",
+              },
+              proceeds: { type: "number", description: "Proceeds from the sale/disposition." },
+              costBasis: {
+                type: "number",
+                description: "Cost or other basis.",
+              },
+              isShortTerm: {
+                type: "boolean",
+                description: "True if reported as short-term.",
+              },
+              box4FederalTaxWithheld: {
+                type: "number",
+                description: "Federal income tax withheld, if any.",
+              },
+            },
+            required: [
+              "description",
+              "dateAcquired",
+              "dateSold",
+              "proceeds",
+              "costBasis",
+              "isShortTerm",
+              "box4FederalTaxWithheld",
+            ],
+            additionalProperties: false,
+          },
+        },
+        confidence: {
+          type: "number",
+          description:
+            "Overall confidence (0-1) that every field above was read correctly.",
+        },
+      },
+      required: ["sectionPresent", "payerName", "transactions", "confidence"],
+      additionalProperties: false,
+    },
+    schema: F1099DAExtractionSchema,
+    instruction: "Extract every transaction from the 1099-DA document above.",
+    documentTitles: ["1099-DA"],
   },
 };

@@ -22,7 +22,7 @@ export async function POST(request: Request) {
 
   const { data: existing } = await supabase
     .from("filings")
-    .select("interview_answers")
+    .select("interview_page")
     .eq("user_id", user.id)
     .eq("tax_year", CURRENT_SUPPORTED_TAX_YEAR)
     .maybeSingle();
@@ -31,8 +31,8 @@ export async function POST(request: Request) {
     {
       user_id: user.id,
       tax_year: CURRENT_SUPPORTED_TAX_YEAR,
-      interview_answers: {
-        ...(existing?.interview_answers ?? {}),
+      interview_page: {
+        ...(existing?.interview_page ?? {}),
         charitableContributions: body.charitableContributions,
         charitableContributionsConfirmed: true,
       },

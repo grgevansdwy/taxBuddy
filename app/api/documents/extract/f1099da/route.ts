@@ -4,12 +4,9 @@ import { extractTransactionsPerPage } from "@/lib/ai/extractTransactionsPerPage"
 
 // Nothing is persisted here — per the EXTRACT-then-CONFIRM principle, extracted
 // fields aren't written to the case file until the user confirms them via
-// /api/documents/income. One call handles one broker's 1099-B (all its
-// transaction rows) — extracted per page and merged (see
-// extractTransactionsPerPage) since a consolidated 1099 can run 20+ pages
-// with the 1099-B section itself split into several same-shaped tables
-// (short/long-term, covered/noncovered), which a single whole-document
-// extraction call was silently losing rows from.
+// /api/documents/income. One call handles one broker's 1099-DA (all its
+// digital-asset transaction rows) — extracted per page and merged (see
+// extractTransactionsPerPage), same reasoning as the 1099-B route.
 export async function POST(request: Request) {
   const supabase = await createClient();
   const {
@@ -20,21 +17,21 @@ export async function POST(request: Request) {
   }
 
   const form = await request.formData();
-  const file = form.get("f1099b");
+  const file = form.get("f1099da");
 
   if (!(file instanceof File)) {
-    return NextResponse.json({ error: "A 1099-B file is required." }, { status: 400 });
+    return NextResponse.json({ error: "A 1099-DA file is required." }, { status: 400 });
   }
 
   try {
     const extraction = await extractTransactionsPerPage(
-      "f1099b",
-      "1099-B",
+      "f1099da",
+      "1099-DA",
       { buffer: Buffer.from(await file.arrayBuffer()), fileName: file.name }
     );
     return NextResponse.json(extraction);
   } catch (err) {
-    console.error("extractF1099B failed:", err);
+    console.error("extractF1099DA failed:", err);
     const detail = err instanceof Error ? err.message : String(err);
     return NextResponse.json({ error: `Couldn't read this document: ${detail}` }, { status: 422 });
   }

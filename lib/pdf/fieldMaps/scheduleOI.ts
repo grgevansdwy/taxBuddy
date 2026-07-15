@@ -43,14 +43,27 @@ export const SCHEDULE_OI_FIELD_MAP: Record<string, PdfFieldEntry> = {
   "schedOI.H.2025": { type: "text", field: `${PAGE1}.f1_25[0]` },
 
   "schedOI.I": { type: "checkbox", yesField: `${PAGE1}.c1_6[0]`, noField: `${PAGE1}.c1_6[1]` },
-  "schedOI.I.year": { type: "text", field: `${PAGE1}.f1_26[0]` },
+  // Single blank on the real form for "latest year AND form number filed" —
+  // not two separate boxes.
+  "schedOI.I.detail": { type: "text", field: `${PAGE1}.f1_26[0]` },
   "schedOI.J": { type: "checkbox", yesField: `${PAGE1}.c1_7[0]`, noField: `${PAGE1}.c1_7[1]` },
   "schedOI.K": { type: "checkbox", yesField: `${PAGE1}.c1_9[0]`, noField: `${PAGE1}.c1_9[1]` },
 
-  "schedOI.L.country": { type: "text", field: `${PAGE1}.LineL1_Table[0].BodyRow1[0].f1_27[0]` },
-  "schedOI.L.article": { type: "text", field: `${PAGE1}.LineL1_Table[0].BodyRow1[0].f1_28[0]` },
-  "schedOI.L.monthsPriorYears": { type: "text", field: `${PAGE1}.LineL1_Table[0].BodyRow1[0].f1_29[0]` },
-  "schedOI.L.amount": { type: "text", field: `${PAGE1}.LineL1_Table[0].BodyRow1[0].f1_30[0]` },
+  // The real table has 3 rows — computeScheduleOI pushes one row per
+  // treaty-exempt-income type it finds (scholarship, wages, ...), indexed
+  // 0/1/2 here to match BodyRow1/2/3.
+  "schedOI.L.country.0": { type: "text", field: `${PAGE1}.LineL1_Table[0].BodyRow1[0].f1_27[0]` },
+  "schedOI.L.article.0": { type: "text", field: `${PAGE1}.LineL1_Table[0].BodyRow1[0].f1_28[0]` },
+  "schedOI.L.monthsPriorYears.0": { type: "text", field: `${PAGE1}.LineL1_Table[0].BodyRow1[0].f1_29[0]` },
+  "schedOI.L.amount.0": { type: "text", field: `${PAGE1}.LineL1_Table[0].BodyRow1[0].f1_30[0]` },
+  "schedOI.L.country.1": { type: "text", field: `${PAGE1}.LineL1_Table[0].BodyRow2[0].f1_31[0]` },
+  "schedOI.L.article.1": { type: "text", field: `${PAGE1}.LineL1_Table[0].BodyRow2[0].f1_32[0]` },
+  "schedOI.L.monthsPriorYears.1": { type: "text", field: `${PAGE1}.LineL1_Table[0].BodyRow2[0].f1_33[0]` },
+  "schedOI.L.amount.1": { type: "text", field: `${PAGE1}.LineL1_Table[0].BodyRow2[0].f1_34[0]` },
+  "schedOI.L.country.2": { type: "text", field: `${PAGE1}.LineL1_Table[0].BodyRow3[0].f1_35[0]` },
+  "schedOI.L.article.2": { type: "text", field: `${PAGE1}.LineL1_Table[0].BodyRow3[0].f1_36[0]` },
+  "schedOI.L.monthsPriorYears.2": { type: "text", field: `${PAGE1}.LineL1_Table[0].BodyRow3[0].f1_37[0]` },
+  "schedOI.L.amount.2": { type: "text", field: `${PAGE1}.LineL1_Table[0].BodyRow3[0].f1_38[0]` },
   "schedOI.L.total": { type: "text", field: `${PAGE1}.f1_39[0]` }, // → Form 1040-NR line 1k
   "schedOI.L2": { type: "checkbox", yesField: `${PAGE1}.c1_11[0]`, noField: `${PAGE1}.c1_11[1]` },
   "schedOI.L3": { type: "checkbox", yesField: `${PAGE1}.c1_12[0]`, noField: `${PAGE1}.c1_12[1]` },

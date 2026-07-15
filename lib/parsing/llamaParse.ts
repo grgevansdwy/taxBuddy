@@ -41,11 +41,11 @@ async function fetchStatus(jobId: string, expandMarkdown: boolean): Promise<Llam
   return parseJsonOrThrow<LlamaParseStatusResponse>(await fetch(url, { headers: authHeaders() }), "status check");
 }
 
-// The one PDF -> markdown preprocessing step every extractor will sit behind:
-// upload -> start a parse job -> poll until done -> fetch the markdown. Kept
-// as plain REST calls (upload/job/poll/result) rather than the LlamaCloud
-// SDK so this has no extra dependency beyond the LLAMA_CLOUD_API_KEY env var.
-export async function parsePdfToMarkdown(file: { buffer: Buffer; fileName: string }): Promise<string> {
+// Shared upload -> start a parse job -> poll until done -> fetch the result.
+// Kept as plain REST calls (upload/job/poll/result) rather than the
+// LlamaCloud SDK so this has no extra dependency beyond the
+// LLAMA_CLOUD_API_KEY env var.
+async function runParseJob(file: { buffer: Buffer; fileName: string }): Promise<LlamaParseStatusResponse> {
   const uploadForm = new FormData();
   uploadForm.append("file", new Blob([new Uint8Array(file.buffer)], { type: "application/pdf" }), file.fileName);
   uploadForm.append("purpose", "parse");
@@ -85,7 +85,14 @@ export async function parsePdfToMarkdown(file: { buffer: Buffer; fileName: strin
     throw new Error(`LlamaParse job ${status.job.status}: ${status.job.error_message ?? "unknown error"}`);
   }
 
-  const result = await fetchStatus(created.id, true);
+  return fetchStatus(created.id, true);
+}
+
+// The one PDF -> markdown preprocessing step most extractors sit behind —
+// good for short documents (W-2, I-94, 1042-S) that comfortably fit in one
+// extraction call.
+export async function parsePdfToMarkdown(file: { buffer: Buffer; fileName: string }): Promise<string> {
+  const result = await runParseJob(file);
 
   if (result.markdown_full) {
     return result.markdown_full;
@@ -93,6 +100,26 @@ export async function parsePdfToMarkdown(file: { buffer: Buffer; fileName: strin
   const pages = result.markdown?.pages;
   if (pages) {
     return pages.map((page) => page.markdown).join("\n\n---\n\n");
+  }
+
+  throw new Error(`LlamaParse result missing markdown. Raw result response: ${JSON.stringify(result)}`);
+}
+
+// Per-page markdown, for long multi-page statements (consolidated 1099s can
+// run 20+ pages) where sending the whole document to one extraction call
+// risks the model losing track partway through a long, repetitive table.
+// Falls back to a single "page" (the whole document) if the API didn't
+// return page-level structure for some reason, so callers degrade to
+// whole-document behavior rather than crashing.
+export async function parsePdfToMarkdownPages(file: { buffer: Buffer; fileName: string }): Promise<string[]> {
+  const result = await runParseJob(file);
+
+  const pages = result.markdown?.pages;
+  if (pages) {
+    return pages.map((page) => page.markdown);
+  }
+  if (result.markdown_full) {
+    return [result.markdown_full];
   }
 
   throw new Error(`LlamaParse result missing markdown. Raw result response: ${JSON.stringify(result)}`);

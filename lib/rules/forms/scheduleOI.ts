@@ -1,6 +1,6 @@
 import type { EligibilityInput, FilerProfile, ResidencyResult } from "@/lib/types";
 import type { IncomeEngineResult } from "@/lib/rules/income";
-import { formatIsoDateSlashesShortYear, formatSsnDigits, formatUsdWhole, splitLegalName } from "@/lib/format";
+import { formatIsoDateSlashesShortYear, formatSsnDigits, formatUsd, splitLegalName } from "@/lib/format";
 
 // Item H prints these three years statically on the 2025 revision of the
 // form — re-verify against the new PDF if CURRENT_SUPPORTED_TAX_YEAR ever
@@ -30,12 +30,25 @@ export function computeScheduleOI(args: {
     "schedOI.C": eligibilityInput.appliedForGreenCard ? "yes" : "no",
     "schedOI.D1": "no", // never a US citizen — implied by needing this form at all
     "schedOI.D2": eligibilityInput.hasGreenCard ? "yes" : "no",
-    "schedOI.E": eligibilityInput.visaClass,
+    "schedOI.E": `${eligibilityInput.visaClass} Student`,
     "schedOI.F": "no", // visa status change mid-year — out of scope (f8843 edge case, not supported)
     "schedOI.I": profile.priorReturn?.filed ? "yes" : "no",
-    "schedOI.I.year": profile.priorReturn?.filed ? String(profile.priorReturn.year ?? "") : "",
+    // Official form has a single blank for "latest year AND form number filed" —
+    // not two separate boxes — so both pieces combine into one line here.
+    "schedOI.I.detail": profile.priorReturn?.filed
+      ? [
+          profile.priorReturn.year ? String(profile.priorReturn.year) : "",
+          profile.priorReturn.form ? `Form ${profile.priorReturn.form}` : "",
+        ]
+          .filter(Boolean)
+          .join(", ")
+      : "",
     "schedOI.J": "no", // not a trust
     "schedOI.K": "no", // $250,000+ compensation — not applicable, no wages in scope
+    // L2/L3 are standalone yes/no questions, independent of whether item L1
+    // has a treaty-exempt-income row above — always answered, never left blank.
+    "schedOI.L2": "no", // taxed by foreign country on this income — not tracked, default no
+    "schedOI.L3": "no", // Competent Authority determination — out of scope
   };
 
   residency.entryExitTaxYear.slice(0, 8).forEach((trip, i) => {
@@ -48,18 +61,38 @@ export function computeScheduleOI(args: {
     lines[`schedOI.H.${year}`] = String(daysPresentByYear[i]);
   });
 
-  // Item L — treaty exemption claim. Only the scholarship-exemption case
-  // (e.g. China, South Korea) belongs here; India's standard-deduction claim
-  // isn't "exempt income" and has no line 1(d) amount, so item L stays blank
-  // for India even though Form 8833 is still required for that claim.
+  // Item L1 — treaty-exempt-income claims. The real table has 3 rows; each
+  // row here is a distinct income type this app ever treats as fully exempt
+  // under a treaty article — scholarship (e.g. China, Korea, Indonesia) and
+  // wages (e.g. Indonesia's $2,000/year cap). A filer with neither correctly
+  // gets zero rows. India's standard-deduction claim isn't "exempt income"
+  // and never gets a row here, even though Form 8833 is still required for
+  // that claim. Adding a new exempt-income type elsewhere in the engine just
+  // means pushing another row here — up to the table's 3-row limit.
+  const treatyExemptRows: { article: string; monthsPriorYears: string; amount: number }[] = [];
   if (income.scholarshipTreatyExempt > 0 && income.treatyRule) {
-    lines["schedOI.L.country"] = profile.citizenship?.value ?? "";
-    lines["schedOI.L.article"] = income.treatyRule.article;
-    lines["schedOI.L.monthsPriorYears"] = String(income.treatyRule.time_limit_years ? 0 : 0); // first year on this app
-    lines["schedOI.L.amount"] = formatUsdWhole(income.scholarshipTreatyExempt);
-    lines["schedOI.L.total"] = formatUsdWhole(income.scholarshipTreatyExempt); // → Form 1040-NR line 1k
-    lines["schedOI.L2"] = "no"; // taxed by foreign country on this income — not tracked, default no
-    lines["schedOI.L3"] = "no"; // Competent Authority determination — out of scope
+    treatyExemptRows.push({
+      article: income.treatyRule.article,
+      monthsPriorYears: String(income.treatyRule.time_limit_years ? 0 : 0), // first year on this app
+      amount: income.scholarshipTreatyExempt,
+    });
+  }
+  if (income.wagesTreatyExempt > 0 && income.wagesTreatyRule) {
+    treatyExemptRows.push({
+      article: income.wagesTreatyRule.article,
+      monthsPriorYears: String(income.wagesTreatyRule.time_limit_years ? 0 : 0),
+      amount: income.wagesTreatyExempt,
+    });
+  }
+
+  treatyExemptRows.forEach((row, i) => {
+    lines[`schedOI.L.country.${i}`] = profile.citizenship?.value ?? "";
+    lines[`schedOI.L.article.${i}`] = row.article;
+    lines[`schedOI.L.monthsPriorYears.${i}`] = row.monthsPriorYears;
+    lines[`schedOI.L.amount.${i}`] = formatUsd(row.amount);
+  });
+  if (treatyExemptRows.length > 0) {
+    lines["schedOI.L.total"] = formatUsd(income.totalTreatyExemptIncome); // → Form 1040-NR line 1k
   }
 
   return lines;

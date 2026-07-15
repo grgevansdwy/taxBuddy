@@ -21,6 +21,7 @@ import { fetchFiling } from "@/lib/client/fetchFiling";
 import type { Address, FilingStatus, ForeignAddress } from "@/lib/types";
 
 type YesNo = "yes" | "no";
+type PriorReturnFormChoice = "1040" | "1040-NR" | "other";
 
 type FieldErrors = Partial<
   Record<
@@ -35,7 +36,8 @@ type FieldErrors = Partial<
     | "foreignCountry"
     | "foreignPostalCode"
     | "ssnOrItin"
-    | "priorReturnYear",
+    | "priorReturnYear"
+    | "priorReturnFormOther",
     string
   >
 >;
@@ -85,6 +87,8 @@ export default function ProfilePage() {
   // by a saved answer, if one exists, once hydration finishes.
   const [priorReturnFiled, setPriorReturnFiled] = useState<YesNo>("yes");
   const [priorReturnYear, setPriorReturnYear] = useState(String(CURRENT_SUPPORTED_TAX_YEAR - 1));
+  const [priorReturnFormChoice, setPriorReturnFormChoice] = useState<PriorReturnFormChoice>("1040-NR");
+  const [priorReturnFormOther, setPriorReturnFormOther] = useState("");
 
   const needsW7 = hasSSN === "no" && hasOrAppliedItin === "no";
 
@@ -127,6 +131,13 @@ export default function ProfilePage() {
         if (profile.priorReturn) {
           setPriorReturnFiled(profile.priorReturn.filed ? "yes" : "no");
           setPriorReturnYear(profile.priorReturn.year ? String(profile.priorReturn.year) : "");
+          const savedForm = profile.priorReturn.form ?? "";
+          if (savedForm === "1040" || savedForm === "1040-NR") {
+            setPriorReturnFormChoice(savedForm);
+          } else if (savedForm) {
+            setPriorReturnFormChoice("other");
+            setPriorReturnFormOther(savedForm);
+          }
         }
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Something went wrong."))
@@ -165,6 +176,9 @@ export default function ProfilePage() {
       const year = Number(priorReturnYear);
       if (!/^\d{4}$/.test(priorReturnYear.trim()) || year < 2000 || year >= CURRENT_SUPPORTED_TAX_YEAR) {
         errors.priorReturnYear = `Enter a year between 2000 and ${CURRENT_SUPPORTED_TAX_YEAR - 1}.`;
+      }
+      if (priorReturnFormChoice === "other" && !priorReturnFormOther.trim()) {
+        errors.priorReturnFormOther = "Enter which form you filed.";
       }
     }
 
@@ -208,6 +222,12 @@ export default function ProfilePage() {
           priorReturn: {
             filed: priorReturnFiled === "yes",
             year: priorReturnFiled === "yes" ? Number(priorReturnYear) : undefined,
+            form:
+              priorReturnFiled === "yes"
+                ? priorReturnFormChoice === "other"
+                  ? priorReturnFormOther.trim()
+                  : priorReturnFormChoice
+                : undefined,
           },
         }),
       });
@@ -450,6 +470,40 @@ export default function ProfilePage() {
               onChange={(e) => setPriorReturnYear(e.target.value)}
             />
             {fieldErrors.priorReturnYear && <p className="text-xs text-destructive">{fieldErrors.priorReturnYear}</p>}
+          </div>
+        )}
+
+        {priorReturnFiled === "yes" && (
+          <div className="space-y-2">
+            <Label>Which form did you file?</Label>
+            <RadioGroup
+              value={priorReturnFormChoice}
+              onValueChange={(v) => setPriorReturnFormChoice(v as PriorReturnFormChoice)}
+              className="flex gap-4"
+            >
+              <label className="flex items-center gap-2 text-sm">
+                <RadioGroupItem value="1040" /> 1040
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <RadioGroupItem value="1040-NR" /> 1040-NR
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <RadioGroupItem value="other" /> Other
+              </label>
+            </RadioGroup>
+            {priorReturnFormChoice === "other" && (
+              <div className="space-y-1.5">
+                <Input
+                  id="priorReturnFormOther"
+                  placeholder="Which form?"
+                  value={priorReturnFormOther}
+                  onChange={(e) => setPriorReturnFormOther(e.target.value)}
+                />
+                {fieldErrors.priorReturnFormOther && (
+                  <p className="text-xs text-destructive">{fieldErrors.priorReturnFormOther}</p>
+                )}
+              </div>
+            )}
           </div>
         )}
 

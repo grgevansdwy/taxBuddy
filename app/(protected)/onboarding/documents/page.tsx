@@ -17,6 +17,7 @@ import type {
   DocType,
   F1042SData,
   F1099BData,
+  F1099DAData,
   F1099DIVData,
   F1099INTData,
   SchoolInfo,
@@ -45,6 +46,7 @@ export default function DocumentsPage() {
   const [f1099ints, setF1099ints] = useState<F1099INTData[]>([]);
   const [f1099divs, setF1099divs] = useState<F1099DIVData[]>([]);
   const [f1099bs, setF1099bs] = useState<F1099BData[]>([]);
+  const [f1099das, setF1099das] = useState<F1099DAData[]>([]);
   const [w2s, setW2s] = useState<W2Data[]>([]);
 
   const [school, setSchool] = useState<SchoolInfo | null>(null);
@@ -66,6 +68,7 @@ export default function DocumentsPage() {
         setF1099ints(filing.f1099ints ?? []);
         setF1099divs(filing.f1099divs ?? []);
         setF1099bs(filing.f1099bs ?? []);
+        setF1099das(filing.f1099das ?? []);
         setW2s(filing.w2s ?? []);
         setSchool(filing.profile?.school ?? null);
         setI20Confirmed(Boolean(filing.profile?.school));
@@ -84,7 +87,7 @@ export default function DocumentsPage() {
   // needs at least one confirmed entry. Nothing here is ever assumed.
   const docConfirmed: Partial<Record<DocType, boolean>> = {
     f1042s: f1042s.length > 0,
-    f1099combined: f1099ints.length > 0 || f1099divs.length > 0 || f1099bs.length > 0,
+    f1099combined: f1099ints.length > 0 || f1099divs.length > 0 || f1099bs.length > 0 || f1099das.length > 0,
     w2: w2s.length > 0,
   };
   const pendingDocs = incomeDocs.filter((doc) => !docConfirmed[doc]);
@@ -146,9 +149,11 @@ export default function DocumentsPage() {
                     initialInts={f1099ints}
                     initialDivs={f1099divs}
                     initialBs={f1099bs}
+                    initialDas={f1099das}
                     onIntsChange={setF1099ints}
                     onDivsChange={setF1099divs}
                     onBsChange={setF1099bs}
+                    onDasChange={setF1099das}
                   />
                 )}
                 {incomeDocs.includes("w2") && <W2Slot initialValue={w2s} onItemsChange={setW2s} />}

@@ -48,7 +48,7 @@ export async function POST(request: Request) {
 
   const { data: existing } = await supabase
     .from("filings")
-    .select("uploaded_documents")
+    .select("documents_upload")
     .eq("user_id", user.id)
     .eq("tax_year", CURRENT_SUPPORTED_TAX_YEAR)
     .maybeSingle();
@@ -57,8 +57,8 @@ export async function POST(request: Request) {
     {
       user_id: user.id,
       tax_year: CURRENT_SUPPORTED_TAX_YEAR,
-      uploaded_documents: {
-        ...((existing?.uploaded_documents as Partial<Record<DocType, UploadedDocument>> | null) ?? {}),
+      documents_upload: {
+        ...((existing?.documents_upload as Partial<Record<DocType, UploadedDocument>> | null) ?? {}),
         [docType]: uploadedDocument,
       },
     },

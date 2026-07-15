@@ -1,0 +1,39 @@
+import { parsePdfToMarkdownPages } from "@/lib/parsing/llamaParse";
+import { extractFromMarkdown } from "@/lib/ai/extractFromMarkdown";
+import type { ExtractionKindResult } from "@/lib/ai/extractionSpecs";
+
+// Shared by 1099-B and 1099-DA: both list transactions across many pages of
+// a long consolidated broker statement (20+ pages isn't unusual), split into
+// several same-shaped tables (e.g. short-term covered, short-term
+// noncovered, long-term covered, ...). Asking one gpt-4o-mini call to
+// enumerate every row across the whole document risks it losing track
+// partway through — a known failure mode for long, repetitive, single-pass
+// extraction. Instead, run the same per-kind extraction once per PAGE and
+// merge; the model only ever has to fully enumerate one page's rows at a
+// time, and most pages come back sectionPresent: false since only a handful
+// of a 20+ page statement actually contain this section's table.
+export async function extractTransactionsPerPage<K extends "f1099b" | "f1099da">(
+  kind: K,
+  documentTitle: string,
+  file: { buffer: Buffer; fileName: string }
+): Promise<ExtractionKindResult[K]> {
+  type Result = ExtractionKindResult[K];
+
+  const pages = await parsePdfToMarkdownPages(file);
+
+  const perPage = (await Promise.all(
+    pages.map((markdown) => extractFromMarkdown(kind, [{ title: documentTitle, markdown }]))
+  )) as Result[];
+
+  const present = perPage.filter((page) => page.sectionPresent);
+  if (present.length === 0) {
+    return perPage[0]; // sectionPresent: false, empty transactions — same shape on every page
+  }
+
+  return {
+    sectionPresent: true,
+    payerName: present[0].payerName,
+    transactions: present.flatMap((page) => page.transactions),
+    confidence: Math.min(...present.map((page) => page.confidence)),
+  } as Result;
+}

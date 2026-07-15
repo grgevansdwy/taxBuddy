@@ -20,6 +20,7 @@ export const F8843_FIELD_MAP: Record<string, PdfFieldEntry> = {
   "f8843.foreignAddress": { type: "text", field: `${PAGE1}.f1_07[0]` }, // address in country of residence
   "f8843.usAddress": { type: "text", field: `${PAGE1}.f1_08[0]` },
   "f8843.1a": { type: "text", field: `${PAGE1}.f1_09[0]` }, // visa type + date entered
+  "f8843.1b": { type: "text", field: `${PAGE1}.f1_10[0]` }, // immigration status on last day of the tax year
   "f8843.2": { type: "text", field: `${PAGE1}.f1_11[0]` }, // citizenship
   "f8843.3a": { type: "text", field: `${PAGE1}.f1_12[0]` }, // passport country
   "f8843.3b": { type: "text", field: `${PAGE1}.f1_13[0]` }, // passport number
@@ -29,8 +30,11 @@ export const F8843_FIELD_MAP: Record<string, PdfFieldEntry> = {
   "f8843.4b": { type: "text", field: `${PAGE1}.f1_17[0]` }, // days excluded
   "f8843.9": { type: "text", field: `${PAGE1}.f1_26[0]` }, // school name/address/phone (Part III students)
   "f8843.10": { type: "text", field: `${PAGE1}.f1_27[0]` }, // director (DSO) name/address/phone — box immediately below line 9
-  // maxLength=1 on all six — the form wants a single visa-type letter
-  // (F/J/M/Q) per year, not the full "F-1" string.
+  // maxLength=1 on all six per the official form (a single visa-type letter
+  // F/J/M/Q per year) — but we print the full "F-1"/"J-1" string instead, so
+  // fillPdfForm() deliberately lifts this cap (removeMaxLength()) before
+  // writing these fields. Worth a visual check since the printed box is
+  // drawn narrow enough for one character.
   "f8843.11.2019": { type: "text", field: `${PAGE1}.f1_28[0]` },
   "f8843.11.2020": { type: "text", field: `${PAGE1}.f1_29[0]` },
   "f8843.11.2021": { type: "text", field: `${PAGE1}.f1_30[0]` },

@@ -23,12 +23,14 @@ export function formatIsoDateSlashesShortYear(iso: string, fallback = ""): strin
   return `${month}/${day}/${year.slice(2)}`;
 }
 
-// IRS forms want whole dollars, and "0" should print as blank rather than
-// "$0" or "0" cluttering a line nobody needs to read — same convention as
-// fillPdfForm's `if (!value) continue` for text fields.
-export function formatUsdWhole(amount: number): string {
-  if (!amount) return "";
-  return Math.round(amount).toLocaleString("en-US");
+// IRS rules require consistency across the whole return: round every dollar
+// amount to whole dollars everywhere, or keep cents everywhere, never mix.
+// This app keeps cents (matches Glacier Tax Prep's convention, checked
+// against a reference return). Always prints, including "0.00" — every call
+// site here is a genuine computed conclusion, not a placeholder for
+// something inapplicable, so there's nothing to hide by going blank.
+export function formatUsd(amount: number): string {
+  return amount.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 // Some IRS form TIN fields are digit-only comb fields with no room for
@@ -40,11 +42,21 @@ export function formatSsnDigits(ssnOrItin: string | undefined): string {
 }
 
 // IRS forms split a full legal name into "first name and middle initial" /
-// "last name" fields — single-word names (no space) go entirely in the first field.
+// "last name" fields — single-word names (no space) go entirely in the first
+// field. Middle name(s) are abbreviated to a single initial each (e.g. "John
+// Michael Smith" -> "John M." / "Smith"), matching what the form actually asks for.
 export function splitLegalName(fullName: string | undefined): { firstNameAndInitial: string; lastName: string } {
   const nameParts = (fullName ?? "").trim().split(/\s+/).filter(Boolean);
+  if (nameParts.length <= 1) {
+    return { firstNameAndInitial: nameParts.join(" "), lastName: "" };
+  }
+  const [first, ...rest] = nameParts;
+  const middleInitials = rest
+    .slice(0, -1)
+    .map((middle) => `${middle.charAt(0).toUpperCase()}.`)
+    .join(" ");
   return {
-    firstNameAndInitial: nameParts.length > 1 ? nameParts.slice(0, -1).join(" ") : nameParts.join(" "),
-    lastName: nameParts.length > 1 ? nameParts[nameParts.length - 1] : "",
+    firstNameAndInitial: [first, middleInitials].filter(Boolean).join(" "),
+    lastName: rest[rest.length - 1],
   };
 }

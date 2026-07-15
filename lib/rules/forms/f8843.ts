@@ -6,6 +6,20 @@ import { formatIsoDateSlashes, splitLegalName } from "@/lib/format";
 // ever moves off 2025 (see lib/pdf/fieldMaps/f8843.ts).
 const LINE_11_YEARS = [2019, 2020, 2021, 2022, 2023, 2024] as const;
 
+// Institution/DSO contact info is printed as "name, address" on the first
+// line and the phone number alone on the second. school.address is looked
+// up online (see lib/ai/lookupSchoolContactInfo.ts, prompted to return only
+// the street-level address) — the startsWith strip here is just a defensive
+// backstop in case the name slips back in.
+function contactBlock(name: string | undefined, address: string | undefined, phone: string | undefined): string {
+  const dedupedAddress =
+    name && address?.toLowerCase().startsWith(name.toLowerCase())
+      ? address.slice(name.length).replace(/^[\s,-]+/, "")
+      : address;
+  const firstLine = [name, dedupedAddress].filter(Boolean).join(", ");
+  return [firstLine, phone].filter(Boolean).join("\n");
+}
+
 // Pure, deterministic mapping from case-file data to Form 8843 line values.
 // No AI involved — every value here is either a direct copy or simple string
 // formatting of data the user already confirmed earlier in the wizard.
@@ -15,8 +29,12 @@ export function computeForm8843(args: {
   profile: Partial<FilerProfile>;
   residency: ResidencyResult;
   eligibilityInput: EligibilityInput;
+  // True when Form 8843 is the only thing this filer needs (no reportable
+  // income means no 1040-NR) — addresses only need to appear here in that
+  // case, since a bundled 1040-NR already carries them.
+  onlyForm8843: boolean;
 }): Record<string, string> {
-  const { profile, residency, eligibilityInput } = args;
+  const { profile, residency, eligibilityInput, onlyForm8843 } = args;
 
   const { firstNameAndInitial, lastName } = splitLegalName(profile.legalName?.value);
 
@@ -37,21 +55,19 @@ export function computeForm8843(args: {
         .join(", ")
     : "";
 
-  const school = profile.school
-    ? [profile.school.name, profile.school.address, profile.school.phone].filter(Boolean).join(", ")
-    : "";
+  const school = profile.school ? contactBlock(profile.school.name, profile.school.address, profile.school.phone) : "";
 
   const dso = profile.school
-    ? [profile.school.dsoName, profile.school.dsoAddress, profile.school.dsoPhone].filter(Boolean).join(", ")
+    ? contactBlock(profile.school.dsoName, profile.school.dsoAddress, profile.school.dsoPhone)
     : "";
 
   const lines: Record<string, string> = {
     "f8843.firstName": firstNameAndInitial,
     "f8843.lastName": lastName,
     "f8843.tin": profile.ssnOrItin ?? "",
-    "f8843.foreignAddress": foreignAddress,
-    "f8843.usAddress": usAddress,
+    ...(onlyForm8843 ? { "f8843.foreignAddress": foreignAddress, "f8843.usAddress": usAddress } : {}),
     "f8843.1a": `${eligibilityInput.visaClass}, ${formatIsoDateSlashes(eligibilityInput.firstEntryDate)}`,
+    "f8843.1b": `${eligibilityInput.visaClass} Student`,
     "f8843.2": profile.citizenship?.value ?? "",
     "f8843.3a": profile.citizenship?.value ?? "",
     "f8843.3b": profile.passportNumber?.value ?? "",
@@ -69,9 +85,9 @@ export function computeForm8843(args: {
   };
 
   for (const year of LINE_11_YEARS) {
-    // Field only accepts one character — form wants the visa-type letter
-    // (F/J/M/Q), not the full "F-1" class string.
-    lines[`f8843.11.${year}`] = residency.visaHistory[year]?.trim().charAt(0).toUpperCase() ?? "";
+    // The printed field only accepts one character (F/J/M/Q), but we print
+    // the full "F-1" class string instead — see fillPdfForm's removeMaxLength().
+    lines[`f8843.11.${year}`] = residency.visaHistory[year]?.trim().toUpperCase() ?? "";
   }
 
   return lines;

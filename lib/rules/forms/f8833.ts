@@ -1,6 +1,6 @@
 import type { FilerProfile } from "@/lib/types";
 import type { IncomeEngineResult } from "@/lib/rules/income";
-import { formatSsnDigits, formatUsdWhole } from "@/lib/format";
+import { formatSsnDigits, formatUsd } from "@/lib/format";
 
 // Pure mapping from the Stage 5 income engine to Form 8833 line values.
 // Only called when income.needsForm8833 is true. Two mutually-exclusive
@@ -46,11 +46,11 @@ export function computeF8833(args: { profile: Partial<FilerProfile>; income: Inc
     lines["f8833.6"] =
       `Under Art. ${rule.article} of the US-${country} income tax treaty, a resident of ${country} temporarily present ` +
       "in the United States as a student is entitled to the same standard deduction as a US resident, " +
-      `in lieu of itemized deductions. ${formatUsdWhole(income.deduction)} claimed as the standard deduction on Form 1040-NR, line 12.`;
+      `in lieu of itemized deductions. ${formatUsd(income.deduction)} claimed as the standard deduction on Form 1040-NR, line 12.`;
   } else {
     lines["f8833.2"] = "IRC §117(a)/§871(c) — taxability of scholarship and fellowship grants";
     lines["f8833.6"] =
-      `Under Art. ${rule.article} of the US-${country} income tax treaty, ${formatUsdWhole(income.scholarshipTreatyExempt)} ` +
+      `Under Art. ${rule.article} of the US-${country} income tax treaty, ${formatUsd(income.scholarshipTreatyExempt)} ` +
       "of taxable scholarship/fellowship income is exempt from U.S. tax. No Form 1042-S was issued reporting this " +
       "exemption, so it is disclosed here per Form 8833 instructions.";
   }

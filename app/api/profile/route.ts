@@ -11,7 +11,7 @@ interface ProfileRequestBody {
   foreignAddress: ForeignAddress;
   filingStatus: FilingStatus;
   ssnOrItin: string;
-  priorReturn: { filed: boolean; year?: number };
+  priorReturn: { filed: boolean; year?: number; form?: string };
 }
 
 export async function POST(request: Request) {
@@ -27,7 +27,7 @@ export async function POST(request: Request) {
 
   const { data: existing } = await supabase
     .from("filings")
-    .select("profile")
+    .select("profile_page")
     .eq("user_id", user.id)
     .eq("tax_year", body.taxYear)
     .maybeSingle();
@@ -37,8 +37,8 @@ export async function POST(request: Request) {
       user_id: user.id,
       tax_year: body.taxYear,
       stage: "interview",
-      profile: {
-        ...(existing?.profile ?? {}),
+      profile_page: {
+        ...(existing?.profile_page ?? {}),
         legalName: { value: body.legalName, confidence: 1, confirmed: true, source: "unknown" },
         dob: { value: body.dob, confidence: 1, confirmed: true, source: "unknown" },
         citizenship: { value: body.citizenship, confidence: 1, confirmed: true, source: "unknown" },

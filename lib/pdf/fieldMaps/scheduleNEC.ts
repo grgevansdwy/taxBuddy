@@ -45,8 +45,50 @@ export const SCHEDULE_NEC_FIELD_MAP: Record<string, PdfFieldEntry> = {
 
   "schedNEC.15": { type: "text", field: `${PAGE1}.f1_99[0]` }, // total NEC tax → Form 1040-NR line 23a
 
-  // Capital Gains and Losses worksheet — only the net totals are populated
-  // (see lib/rules/forms/scheduleNEC.ts for why line 16 itself is left blank).
+  // Capital Gains and Losses worksheet, line 16 — 5 built-in rows
+  // (Table_Line16), each: kind/description, date acquired, date sold, sales
+  // price, cost basis, loss, gain. Any lot beyond the first 5 goes on the
+  // overflow attachment instead (see lib/rules/forms/scheduleNEC.ts).
+  "schedNEC.16.kind.0": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow1[0].f1_100[0]` },
+  "schedNEC.16.dateAcquired.0": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow1[0].f1_101[0]` },
+  "schedNEC.16.dateSold.0": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow1[0].f1_102[0]` },
+  "schedNEC.16.salesPrice.0": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow1[0].f1_103[0]` },
+  "schedNEC.16.costBasis.0": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow1[0].f1_104[0]` },
+  "schedNEC.16.loss.0": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow1[0].f1_105[0]` },
+  "schedNEC.16.gain.0": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow1[0].f1_106[0]` },
+
+  "schedNEC.16.kind.1": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow2[0].f1_107[0]` },
+  "schedNEC.16.dateAcquired.1": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow2[0].f1_108[0]` },
+  "schedNEC.16.dateSold.1": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow2[0].f1_109[0]` },
+  "schedNEC.16.salesPrice.1": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow2[0].f1_110[0]` },
+  "schedNEC.16.costBasis.1": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow2[0].f1_111[0]` },
+  "schedNEC.16.loss.1": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow2[0].f1_112[0]` },
+  "schedNEC.16.gain.1": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow2[0].f1_113[0]` },
+
+  "schedNEC.16.kind.2": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow3[0].f1_114[0]` },
+  "schedNEC.16.dateAcquired.2": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow3[0].f1_115[0]` },
+  "schedNEC.16.dateSold.2": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow3[0].f1_116[0]` },
+  "schedNEC.16.salesPrice.2": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow3[0].f1_117[0]` },
+  "schedNEC.16.costBasis.2": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow3[0].f1_118[0]` },
+  "schedNEC.16.loss.2": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow3[0].f1_119[0]` },
+  "schedNEC.16.gain.2": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow3[0].f1_120[0]` },
+
+  "schedNEC.16.kind.3": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow4[0].f1_121[0]` },
+  "schedNEC.16.dateAcquired.3": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow4[0].f1_122[0]` },
+  "schedNEC.16.dateSold.3": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow4[0].f1_123[0]` },
+  "schedNEC.16.salesPrice.3": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow4[0].f1_124[0]` },
+  "schedNEC.16.costBasis.3": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow4[0].f1_125[0]` },
+  "schedNEC.16.loss.3": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow4[0].f1_126[0]` },
+  "schedNEC.16.gain.3": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow4[0].f1_127[0]` },
+
+  "schedNEC.16.kind.4": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow5[0].f1_128[0]` },
+  "schedNEC.16.dateAcquired.4": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow5[0].f1_129[0]` },
+  "schedNEC.16.dateSold.4": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow5[0].f1_130[0]` },
+  "schedNEC.16.salesPrice.4": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow5[0].f1_131[0]` },
+  "schedNEC.16.costBasis.4": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow5[0].f1_132[0]` },
+  "schedNEC.16.loss.4": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow5[0].f1_133[0]` },
+  "schedNEC.16.gain.4": { type: "text", field: `${PAGE1}.Table_Line16[0].BodyRow5[0].f1_134[0]` },
+
   "schedNEC.17": { type: "text", field: `${PAGE1}.f1_136[0]` }, // gain column of line 17
   "schedNEC.18": { type: "text", field: `${PAGE1}.f1_137[0]` }, // net capital gain → line 9 above
 };

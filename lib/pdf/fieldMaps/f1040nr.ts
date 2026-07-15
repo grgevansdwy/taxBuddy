@@ -15,6 +15,12 @@ export const F1040NR_FIELD_MAP: Record<string, PdfFieldEntry> = {
   "1040nr.lastName": { type: "text", field: `${PAGE1}.f1_15[0]` },
   "1040nr.tin": { type: "text", field: `${PAGE1}.f1_16[0]` },
 
+  "1040nr.usAddress.line1": { type: "text", field: `${PAGE1}.f1_17[0]` }, // home address (number and street)
+  "1040nr.usAddress.aptNo": { type: "text", field: `${PAGE1}.f1_18[0]` },
+  "1040nr.usAddress.city": { type: "text", field: `${PAGE1}.f1_19[0]` },
+  "1040nr.usAddress.state": { type: "text", field: `${PAGE1}.f1_20[0]` },
+  "1040nr.usAddress.zip": { type: "text", field: `${PAGE1}.f1_21[0]` },
+
   // Filing Status — pdf-lib exposes each of the 5 radio options as its own
   // checkbox field (c1_5[0..4]); "single"/"mfs" are the only two this app
   // supports (FilerProfile.filingStatus). Each is checked independently
@@ -25,6 +31,8 @@ export const F1040NR_FIELD_MAP: Record<string, PdfFieldEntry> = {
   "1040nr.digitalAssets": { type: "checkbox", yesField: `${PAGE1}.c1_6[0]`, noField: `${PAGE1}.c1_6[1]` },
 
   // Income Effectively Connected With U.S. Trade or Business (page 1)
+  "1040nr.1a": { type: "text", field: `${PAGE1}.f1_42[0]` }, // total from Form(s) W-2, box 1
+  "1040nr.1z": { type: "text", field: `${PAGE1}.f1_54[0]` }, // add lines 1a through 1h
   "1040nr.1k": { type: "text", field: `${PAGE1}.Line1k_ReadOrder[0].f1_53[0]` }, // total income exempt by treaty, from Schedule OI item L
   "1040nr.2a": { type: "text", field: `${PAGE1}.f1_55[0]` }, // tax-exempt interest (informational — bank interest, §871(i))
   "1040nr.8": { type: "text", field: `${PAGE1}.f1_68[0]` }, // additional income from Schedule 1 (taxable scholarship stands in here)
@@ -41,6 +49,7 @@ export const F1040NR_FIELD_MAP: Record<string, PdfFieldEntry> = {
   "1040nr.23a": { type: "text", field: `${PAGE2}.Line23a_ReadOrder[0].f2_16[0]` }, // Schedule NEC tax
   "1040nr.23d": { type: "text", field: `${PAGE2}.f2_19[0]` },
   "1040nr.24": { type: "text", field: `${PAGE2}.f2_20[0]` }, // total tax
+  "1040nr.25a": { type: "text", field: `${PAGE2}.Line25_ReadOrder[0].f2_21[0]` }, // withheld from W-2 wages
   "1040nr.25b": { type: "text", field: `${PAGE2}.f2_22[0]` }, // withheld from 1099s (interest/dividends/capital gains)
   "1040nr.25d": { type: "text", field: `${PAGE2}.f2_24[0]` },
   "1040nr.25g": { type: "text", field: `${PAGE2}.f2_27[0]` }, // withheld from 1042-S (scholarship)

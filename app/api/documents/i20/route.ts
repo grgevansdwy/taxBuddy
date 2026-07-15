@@ -25,7 +25,7 @@ export async function POST(request: Request) {
 
   const { data: existing } = await supabase
     .from("filings")
-    .select("profile")
+    .select("profile_page")
     .eq("user_id", user.id)
     .eq("tax_year", CURRENT_SUPPORTED_TAX_YEAR)
     .maybeSingle();
@@ -34,10 +34,10 @@ export async function POST(request: Request) {
     {
       user_id: user.id,
       tax_year: CURRENT_SUPPORTED_TAX_YEAR,
-      profile: {
-        ...(existing?.profile ?? {}),
+      profile_page: {
+        ...(existing?.profile_page ?? {}),
         school: body.school,
-        sevisId: body.sevisId ?? existing?.profile?.sevisId,
+        sevisId: body.sevisId ?? existing?.profile_page?.sevisId,
       },
     },
     { onConflict: "user_id,tax_year" }

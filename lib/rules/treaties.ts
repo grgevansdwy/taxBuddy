@@ -1,11 +1,15 @@
 import type { TreatyRule } from "@/lib/types";
 
-// Curated treaty data for the 5 most common F-1 source countries. Sourced from
+// Curated treaty data for the 6 most common F-1 source countries. Sourced from
 // IRS Pub 901 (Rev. September 2024), "Students and Apprentices" narrative
-// (scholarship article terms) and Tax Treaty Table 1 (Rev. May 2023, dividend
-// withholding rates, "general"/non-corporate column). Any country not listed
-// here falls back to no treaty benefit: 30% flat NEC rate, itemized deduction
-// only, no Form 8833.
+// (scholarship article terms), Tax Treaty Table 1 (Rev. May 2023, dividend
+// withholding rates, "general"/non-corporate column), and the treaty texts
+// themselves for wage exemptions (income_type: "wages" — a per-year dollar
+// cap on compensation for services connected to study/research/maintenance;
+// only Indonesia has one modeled so far). Any country not listed here falls
+// back to no treaty benefit: 30% flat NEC rate, itemized deduction only, no
+// Form 8833. Adding a wage exemption for another country is just a new row
+// here — computeIncomeEngine() looks it up generically, no code changes needed.
 //
 // IMPORTANT nuance baked into the `scholarship` rows: several treaties'
 // student articles only exempt payments/remittances received FROM ABROAD for
@@ -14,7 +18,10 @@ import type { TreatyRule } from "@/lib/types";
 // and the only scholarship income this engine ever sees). China and South Korea are
 // the exceptions: their treaties separately exempt "the grant, allowance, or
 // award" with no abroad-sourcing restriction, so US-school scholarships are
-// covered. India and Canada's articles are abroad-only, so exempt_amount is
+// covered. Indonesia's Art 19(1)(b) is the same shape: subparagraph (i) is
+// abroad-only remittances, but subparagraph (ii) — "the amount of such
+// grant, allowance or award" — carries no abroad restriction, so it's grouped
+// with China/Korea here too. India and Canada's articles are abroad-only, so exempt_amount is
 // 0 here even though the treaty exists — India gets the standard-deduction
 // consolation prize instead (allows_standard_deduction). Mexico's treaty has
 // no Students/Apprentices article at all.
@@ -115,6 +122,41 @@ export const TREATY_RULES: TreatyRule[] = [
     citation: "Tax Treaty Table 1 (5-2023), Canada dividends; US-Canada Art X(2)",
   },
 
+  // ---------- Indonesia ----------
+  {
+    country_code: "ID",
+    tax_year: 2025,
+    income_type: "scholarship",
+    article: "19(1)(b)(ii)",
+    exempt_amount: null, // unlimited — "the amount of such grant, allowance or award" not restricted to abroad, like China/Korea
+    nec_treaty_rate: null,
+    time_limit_years: 5,
+    allows_standard_deduction: false,
+    citation: "Pub 901 (9-2024) Students and Apprentices, Indonesia; US-Indonesia Art 19(1)(b)(ii)",
+  },
+  {
+    country_code: "ID",
+    tax_year: 2025,
+    income_type: "dividends",
+    article: "11(2)",
+    exempt_amount: null,
+    nec_treaty_rate: 0.15, // single flat rate — Art 11 has no separate qualifying-direct column
+    time_limit_years: null,
+    allows_standard_deduction: false,
+    citation: "Tax Treaty Table 1 (5-2023), Indonesia dividends; US-Indonesia Art 11(2)",
+  },
+  {
+    country_code: "ID",
+    tax_year: 2025,
+    income_type: "wages",
+    article: "19(1)(b)(iii)",
+    exempt_amount: 2000, // per year — remuneration for services connected to study/research/training, or necessary for maintenance
+    nec_treaty_rate: null,
+    time_limit_years: null, // the treaty text doesn't separately cap this sub-clause's own duration (distinct from Art 19(1)(a)'s 5-year window)
+    allows_standard_deduction: false,
+    citation: "US-Indonesia Art 19(1)(b)(iii)",
+  },
+
   // ---------- Mexico ----------
   // No Students/Apprentices article in the US-Mexico treaty at all — no
   // scholarship row. Dividend rate still applies to any NRA with US
@@ -146,7 +188,7 @@ export function findTreatyRule(
 
 // profile.citizenship.value holds the full name from lib/config/countries.ts
 // (extracted from the passport), not an ISO code — this bridges the two.
-// Only the 5 countries covered by TREATY_RULES are listed; any other name
+// Only the 6 countries covered by TREATY_RULES are listed; any other name
 // falls through to "no treaty" (findTreatyRule returns null).
 const COUNTRY_NAME_TO_CODE: Record<string, string> = {
   China: "CN",
@@ -154,6 +196,7 @@ const COUNTRY_NAME_TO_CODE: Record<string, string> = {
   "South Korea": "KR",
   Canada: "CA",
   Mexico: "MX",
+  Indonesia: "ID",
 };
 
 export function findTreatyRuleForCountryName(

@@ -9,11 +9,11 @@ import { ONBOARDING_STEPS, routeForStage } from '@/lib/config/onboarding'
 import { DOC_LABELS } from '@/lib/config/docLabels'
 import { formatIsoDate } from '@/lib/format'
 import { loadEngineContext } from '@/lib/server/engineContext'
-import type { DocType, ResidencyResult } from '@/lib/types'
+import type { DocType, EligibilityPageData, ResidencyResult } from '@/lib/types'
 
 interface FilingRow {
   stage: string
-  residency: ResidencyResult | null
+  eligibility_page: EligibilityPageData | null
   documents_needed: DocType[] | null
 }
 
@@ -142,7 +142,7 @@ export default async function DashboardPage() {
 
   const { data: filing } = await supabase
     .from('filings')
-    .select('stage, residency, documents_needed')
+    .select('stage, eligibility_page, documents_needed')
     .eq('user_id', user.id)
     .eq('tax_year', CURRENT_SUPPORTED_TAX_YEAR)
     .maybeSingle<FilingRow>()
@@ -176,7 +176,7 @@ export default async function DashboardPage() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-foreground">
-                  {filing?.residency?.reasoning ??
+                  {filing?.eligibility_page?.residency?.reasoning ??
                     "Something about your situation isn't supported yet — check your eligibility answers."}
                 </p>
               </CardContent>
@@ -221,7 +221,9 @@ export default async function DashboardPage() {
                 </Card>
               )}
 
-              {filing?.residency && <ResidencySnapshot residency={filing.residency} />}
+              {filing?.eligibility_page?.residency && (
+                <ResidencySnapshot residency={filing.eligibility_page.residency} />
+              )}
 
               {stage === 'documents' && filing?.documents_needed && (
                 <Card>

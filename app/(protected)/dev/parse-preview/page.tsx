@@ -14,6 +14,7 @@ const KIND_LABELS: Record<ExtractionKind, string> = {
   f1099int: "1099-INT",
   f1099div: "1099-DIV",
   f1099b: "1099-B",
+  f1099da: "1099-DA",
 };
 
 const KINDS = Object.keys(EXTRACTION_SPECS) as ExtractionKind[];
