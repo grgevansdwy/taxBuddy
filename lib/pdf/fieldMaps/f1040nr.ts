@@ -34,7 +34,8 @@ export const F1040NR_FIELD_MAP: Record<string, PdfFieldEntry> = {
   "1040nr.1a": { type: "text", field: `${PAGE1}.f1_42[0]` }, // total from Form(s) W-2, box 1
   "1040nr.1z": { type: "text", field: `${PAGE1}.f1_54[0]` }, // add lines 1a through 1h
   "1040nr.1k": { type: "text", field: `${PAGE1}.Line1k_ReadOrder[0].f1_53[0]` }, // total income exempt by treaty, from Schedule OI item L
-  "1040nr.2a": { type: "text", field: `${PAGE1}.f1_55[0]` }, // tax-exempt interest (informational — bank interest, §871(i))
+  // f1_55[0] (line 2a, tax-exempt interest) is intentionally unmapped — see
+  // the "No line 2a entry" comment in lib/rules/forms/f1040nr.ts.
   "1040nr.8": { type: "text", field: `${PAGE1}.f1_68[0]` }, // additional income from Schedule 1 (taxable scholarship stands in here)
   "1040nr.9": { type: "text", field: `${PAGE1}.f1_69[0]` }, // total effectively connected income
   "1040nr.11a": { type: "text", field: `${PAGE1}.f1_71[0]` }, // adjusted gross income
@@ -57,4 +58,7 @@ export const F1040NR_FIELD_MAP: Record<string, PdfFieldEntry> = {
   "1040nr.34": { type: "text", field: `${PAGE2}.f2_36[0]` }, // overpaid/refund
   "1040nr.35a": { type: "text", field: `${PAGE2}.f2_37[0]` }, // amount refunded to you
   "1040nr.37": { type: "text", field: `${PAGE2}.f2_42[0]` }, // amount you owe
+
+  // Sign Here (page 2)
+  "1040nr.occupation": { type: "text", field: `${PAGE2}.f2_47[0]` }, // "Your occupation"
 };

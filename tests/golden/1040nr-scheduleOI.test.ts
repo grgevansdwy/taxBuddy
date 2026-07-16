@@ -127,6 +127,7 @@ const f1099bs: F1099BData[] = [
         dateSold: "2025-06-01",
         proceeds: 2000,
         costBasis: 1000,
+        washSaleLossDisallowed: 0,
         realizedGainLoss: 1000,
         isShortTerm: true,
         box4FederalTaxWithheld: 0,
@@ -214,11 +215,14 @@ describe("computeIncomeEngine (wages + scholarship + dividends + capital gains)"
   it("aggregates totals correctly", () => {
     expect(income.effectivelyConnectedIncome).toBe(1500); // wagesTaxable + scholarshipTaxable(0)
     expect(income.taxableIncome).toBe(1000); // 1500 - 500 itemized deduction
-    expect(income.effectivelyConnectedTax).toBe(100); // 1000 * 10% bracket
+    // Tax Table lookup, not a flat 1000 * 10%: taxable income $1,000 falls in
+    // the $1,000-$1,025 row, taxed on its $1,012.50 midpoint (IRS mandates
+    // the table, not the continuous formula, below $100,000 taxable income).
+    expect(income.effectivelyConnectedTax).toBe(101); // 1012.50 * 10% = 101.25 -> rounds to 101
     expect(income.necTax).toBe(375); // 75 + 300
-    expect(income.totalTax).toBe(475);
+    expect(income.totalTax).toBe(476);
     expect(income.totalWithholding).toBe(275); // 200 wages + 75 dividends
-    expect(income.refundOrDue).toBe(-200); // owes $200
+    expect(income.refundOrDue).toBe(-201); // owes $201
     expect(income.totalTreatyExemptIncome).toBe(14000); // 2000 wages + 12000 scholarship
     expect(income.hasReportableIncome).toBe(true);
   });
@@ -257,7 +261,7 @@ describe("computeF1040NR", () => {
   });
 
   it("balance due (not refund) since totalTax > totalWithholding", () => {
-    expect(lines["1040nr.37"]).toBe("200.00");
+    expect(lines["1040nr.37"]).toBe("201.00");
     expect(lines["1040nr.34"]).toBeUndefined();
     expect(lines["1040nr.35a"]).toBeUndefined();
   });
@@ -373,6 +377,7 @@ describe("computeIncomeEngine merges 1099-B and 1099-DA into one capital-gains t
         dateSold: "2025-06-01",
         proceeds: 500,
         costBasis: 300,
+        washSaleLossDisallowed: 0,
         realizedGainLoss: 200,
         isShortTerm: true,
         box4FederalTaxWithheld: 0,
@@ -388,6 +393,7 @@ describe("computeIncomeEngine merges 1099-B and 1099-DA into one capital-gains t
         dateSold: "2025-02-01",
         proceeds: 100,
         costBasis: 150,
+        washSaleLossDisallowed: 0,
         realizedGainLoss: -50,
         isShortTerm: true,
         box4FederalTaxWithheld: 0,

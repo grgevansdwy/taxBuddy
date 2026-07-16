@@ -100,6 +100,9 @@ const FORM_DOWNLOADS: { id: string; label: string; route: string }[] = [
   { id: 'schedNEC', label: 'Schedule NEC', route: '/api/documents/generate/schedNEC' },
   { id: 'schedA', label: 'Schedule A', route: '/api/documents/generate/schedA' },
   { id: 'f8833', label: 'Form 8833', route: '/api/documents/generate/f8833' },
+  // The Schedule NEC line-16 continuation statement is listed last, matching
+  // its position at the bottom of the combined packet.
+  { id: 'schedNEC-attachment', label: 'Schedule NEC — Line 16 Attachment', route: '/api/documents/generate/schedNEC-attachment' },
 ]
 
 async function ReadyToFileCard() {
@@ -110,6 +113,11 @@ async function ReadyToFileCard() {
   if (result.ok) {
     const { income } = result.context
     if (income.dividendsGross > 0 || income.capitalGainsTaxable) applicable.add('schedNEC')
+    // Line 16 fits only the first 5 lots; the rest go on the overflow statement
+    // (see app/api/documents/generate/schedNEC-attachment/route.ts). Only offer
+    // it when there's actually overflow to print.
+    if (income.capitalGainsTaxable && income.capitalGainsTransactions.length > 5)
+      applicable.add('schedNEC-attachment')
     if (!income.usesStandardDeduction && income.charitableContributions > 0) applicable.add('schedA')
     if (income.needsForm8833) applicable.add('f8833')
   }
@@ -121,6 +129,13 @@ async function ReadyToFileCard() {
         <CardDescription>Download each form below and mail them together, or use the instructions provided.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
+        <a href="/api/documents/generate/packet" className="block">
+          <Button className="w-full justify-between">
+            Download entire return (all forms)
+            <span aria-hidden>↓</span>
+          </Button>
+        </a>
+        <p className="text-sm text-muted-foreground pt-1">Or download each form individually:</p>
         {FORM_DOWNLOADS.filter((form) => applicable.has(form.id)).map((form) => (
           <a key={form.id} href={form.route} className="block">
             <Button variant="outline" className="w-full justify-between">

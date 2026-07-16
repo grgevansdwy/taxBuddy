@@ -444,13 +444,28 @@ export const EXTRACTION_SPECS: {
       "a longer multi-page 1099-B (brokers split sales into several tables — " +
       "short-term/long-term, covered/noncovered — each spanning one or more " +
       "pages, often repeating the column headers on each page). Only report on " +
-      "1099-B sales-transaction tables. If this page has no 1099-B transaction " +
-      "table on it (e.g. it's a summary page, instructions, or a different " +
-      "form section), set sectionPresent to false and leave transactions empty " +
-      "rather than guessing. Extract EVERY transaction row on this page exactly " +
-      "as printed, including every individual lot under a security's heading — " +
-      "do not skip rows, do not stop after the first security, do not infer or " +
-      "guess a value that isn't visible, and do not compute gain/loss yourself.",
+      "1099-B sales-transaction tables. CRITICAL: a consolidated statement also " +
+      "contains a Form 1099-DA (Digital Asset Proceeds From Broker " +
+      "Transactions) section that looks almost IDENTICAL to 1099-B — same " +
+      "column layout (description, dates, proceeds, cost basis, gain/loss). Do " +
+      "NOT include digital-asset/crypto rows here; they belong to 1099-DA and " +
+      "are extracted separately, so counting them here double-counts them. Use " +
+      "the ROW ITSELF to tell them apart: a 1099-B row names a company/fund and " +
+      "includes an actual CUSIP number plus 'Symbol:' (e.g. 'EXXON MOBIL " +
+      "CORPORATION / CUSIP: 30231G102 / Symbol:'); a 1099-DA row names a " +
+      "digital asset (e.g. Bitcoin, Solana, Dogecoin) with a short DTIF code " +
+      "and NO real CUSIP number (e.g. 'Bitcoin / 4H95J0R2X'). If a row's " +
+      "description is a digital asset with no real CUSIP, it belongs to 1099-DA " +
+      "— do NOT include it. If this page has no genuine 1099-B transaction " +
+      "table on it (e.g. it's a summary page, instructions, a 1099-DA " +
+      "digital-asset page, or a different form section), set sectionPresent to " +
+      "false and leave transactions empty rather than guessing. Extract EVERY " +
+      "1099-B transaction row on this page exactly as printed, including every " +
+      "individual lot under a security's heading — do not skip rows, do not " +
+      "stop after the first security, do not infer or guess a value that isn't " +
+      "visible, and do not compute gain/loss yourself. For each lot also report " +
+      "the wash sale loss disallowed (box 1g, the amount marked 'W' in the " +
+      "accrued-market-discount/wash-sale column); use 0 when the lot has none.",
     jsonSchemaName: "record_f1099b_extraction",
     jsonSchema: {
       type: "object",
@@ -486,6 +501,11 @@ export const EXTRACTION_SPECS: {
                 type: "number",
                 description: "Box 1e: cost or other basis.",
               },
+              washSaleLossDisallowed: {
+                type: "number",
+                description:
+                  "Box 1g: wash sale loss disallowed (the amount marked 'W' in the accrued-market-discount/wash-sale column). Use 0 when the lot has none.",
+              },
               isShortTerm: {
                 type: "boolean",
                 description: "Box 2: true if reported as short-term.",
@@ -501,6 +521,7 @@ export const EXTRACTION_SPECS: {
               "dateSold",
               "proceeds",
               "costBasis",
+              "washSaleLossDisallowed",
               "isShortTerm",
               "box4FederalTaxWithheld",
             ],
@@ -551,7 +572,9 @@ export const EXTRACTION_SPECS: {
       "transaction row on this page exactly as printed, including every " +
       "individual lot under an asset's heading — do not skip rows, do not " +
       "stop after the first asset, do not infer or guess a value that isn't " +
-      "visible, and do not compute gain/loss yourself.",
+      "visible, and do not compute gain/loss yourself. For each lot also " +
+      "report the wash sale loss disallowed (box 1i, the amount marked 'W'); " +
+      "use 0 when the lot has none.",
     jsonSchemaName: "record_f1099da_extraction",
     jsonSchema: {
       type: "object",
@@ -587,6 +610,11 @@ export const EXTRACTION_SPECS: {
                 type: "number",
                 description: "Cost or other basis.",
               },
+              washSaleLossDisallowed: {
+                type: "number",
+                description:
+                  "Box 1i: wash sale loss disallowed for a digital asset that is also a security (the amount marked 'W'). Use 0 when the lot has none.",
+              },
               isShortTerm: {
                 type: "boolean",
                 description: "True if reported as short-term.",
@@ -602,6 +630,7 @@ export const EXTRACTION_SPECS: {
               "dateSold",
               "proceeds",
               "costBasis",
+              "washSaleLossDisallowed",
               "isShortTerm",
               "box4FederalTaxWithheld",
             ],

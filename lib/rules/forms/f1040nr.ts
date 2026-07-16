@@ -30,10 +30,15 @@ export function computeF1040NR(args: { profile: Partial<FilerProfile>; income: I
     "1040nr.filingStatus.single": profile.filingStatus === "married_nra" ? "no" : "yes",
     "1040nr.filingStatus.mfs": profile.filingStatus === "married_nra" ? "yes" : "no",
     "1040nr.digitalAssets": profile.digitalAssets ? "yes" : "no",
+    "1040nr.occupation": "Student", // every filer in this app's scope is an F-1 student
     "1040nr.1a": formatUsd(income.wagesTaxable),
     "1040nr.1z": formatUsd(income.wagesTaxable),
     "1040nr.1k": formatUsd(income.totalTreatyExemptIncome), // must match Schedule OI item L's total
-    "1040nr.2a": formatUsd(income.interestExempt),
+    // No line 2a entry: per the 1040-NR instructions ("Line 2a—Tax-Exempt
+    // Interest," Exceptions 1 & 2), bank/portfolio interest exempt under
+    // §871(i) that isn't effectively connected with a U.S. trade or business
+    // is explicitly excluded from line 2a, not just from taxable income — it
+    // has no line on Form 1040-NR at all.
     "1040nr.8": formatUsd(income.scholarshipTaxable),
     "1040nr.9": formatUsd(income.effectivelyConnectedIncome),
     "1040nr.11a": formatUsd(income.effectivelyConnectedIncome),

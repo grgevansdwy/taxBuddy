@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { CURRENT_SUPPORTED_TAX_YEAR } from "@/lib/config/taxYear";
+import { withRealizedGainLoss } from "@/lib/rules/capitalGains";
 import type { F1042SData, F1099BData, F1099DAData, F1099DIVData, F1099INTData, W2Data } from "@/lib/types";
 
 // Confirmed-income persistence: the client extracts a document (via one of
@@ -59,16 +60,4 @@ export async function POST(request: Request) {
   }
 
   return NextResponse.json({ ok: true });
-}
-
-// realizedGainLoss is arithmetic (proceeds - costBasis), never AI-extracted or
-// client-supplied, so it can't diverge from the two numbers it summarizes.
-function withRealizedGainLoss(f1099bs: F1099BData[]): F1099BData[] {
-  return f1099bs.map((doc) => ({
-    ...doc,
-    transactions: doc.transactions.map((tx) => ({
-      ...tx,
-      realizedGainLoss: tx.proceeds - tx.costBasis,
-    })),
-  }));
 }

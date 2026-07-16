@@ -18,6 +18,7 @@ export const F1099DAExtractionSchema = z.object({
       dateSold: z.string(), // ISO yyyy-mm-dd
       proceeds: z.number(),
       costBasis: z.number(),
+      washSaleLossDisallowed: z.number(), // box 1i (digital-asset wash sale); 0 if none
       isShortTerm: z.boolean(),
       box4FederalTaxWithheld: z.number(),
     })

@@ -155,7 +155,8 @@ export interface F1099BTransaction {
   dateSold: string;
   proceeds: number; // box 1d — sales price
   costBasis: number; // box 1e — cost or other basis
-  realizedGainLoss: number; // proceeds - costBasis
+  washSaleLossDisallowed: number; // box 1g (1099-B) / box 1i (1099-DA) — disallowed loss added back; 0 if none
+  realizedGainLoss: number; // allowed gain/loss = proceeds - costBasis + washSaleLossDisallowed
   isShortTerm: boolean; // box 2: true if short-term
   box4FederalTaxWithheld: number;
 }

@@ -259,7 +259,7 @@ export function computeIncomeEngine(args: {
   const effectivelyConnectedIncome = wagesTaxable + scholarshipTaxable;
   const taxableIncome = Math.max(0, effectivelyConnectedIncome - deduction);
   const brackets = profile.filingStatus === "married_nra" ? config.brackets_mfs : config.brackets_single;
-  const effectivelyConnectedTax = round2(bracketTax(taxableIncome, brackets));
+  const effectivelyConnectedTax = taxForIncome(taxableIncome, brackets);
   const necTax = dividendsTax + capitalGainsTax;
   const totalTax = round2(effectivelyConnectedTax + necTax);
   const totalWithholding = round2(
@@ -341,4 +341,40 @@ function bracketTax(taxableIncome: number, brackets: readonly [number, number, n
     tax += taxedInBracket * rate;
   }
   return tax;
+}
+
+// Form 1040-NR line 16 ("Tax"): for taxable income under $100,000, the
+// instructions mandate reading the discrete IRS Tax Table, not applying
+// bracketTax's continuous formula directly to the exact dollar amount. The
+// Tax Table buckets income into rows — $10-wide below $25, $25-wide from $25
+// up to $3,000, $50-wide from $3,000 up to $100,000 — and every income in a
+// row pays the tax on that row's midpoint, rounded to the nearest whole
+// dollar (50–99 cents rounds up). Verified against the 2025 Form 1040-NR
+// Sample Table in the instructions (Single, $25,300–$25,350 row: midpoint
+// $25,325 → bracketTax = $2,800.50 → table value $2,801). At $100,000 and
+// above, the instructions switch to the Tax Computation Worksheet, which is
+// just bracketTax evaluated at the exact income and rounded to the dollar —
+// no table lookup.
+function taxTableRowMidpoint(taxableIncome: number): number {
+  if (taxableIncome < 5) return 0; // "At least 0 But less than 5" row — always $0 tax
+  if (taxableIncome < 25) {
+    const floor = taxableIncome < 15 ? 5 : 15;
+    return floor + 5;
+  }
+  if (taxableIncome < 3000) {
+    const floor = Math.floor((taxableIncome - 25) / 25) * 25 + 25;
+    return floor + 12.5;
+  }
+  const floor = Math.floor(taxableIncome / 50) * 50;
+  return floor + 25;
+}
+
+function roundToDollar(value: number): number {
+  return Math.floor(value + 0.5); // IRS convention: 50-99 cents rounds up
+}
+
+function taxForIncome(taxableIncome: number, brackets: readonly [number, number, number][]): number {
+  if (taxableIncome <= 0) return 0;
+  const lookupIncome = taxableIncome < 100000 ? taxTableRowMidpoint(taxableIncome) : taxableIncome;
+  return roundToDollar(bracketTax(lookupIncome, brackets));
 }
