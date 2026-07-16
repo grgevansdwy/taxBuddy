@@ -42,3 +42,4 @@ Robinhood Markets Consolidated Form 1099.pdf
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.gstack/

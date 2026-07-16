@@ -1,0 +1,51 @@
+{
+  "name": "projects/7818467508193013014",
+  "projectId": "7818467508193013014",
+  "title": "TaxBuddy Marketing Site",
+  "visibility": "PRIVATE",
+  "createTime": "2026-07-16T01:53:46.896910Z",
+  "projectType": "PROJECT_DESIGN",
+  "origin": "STITCH",
+  "deviceType": "DESKTOP",
+  "designSystemAssetId": "assets/bc3f6144800f4033861446b28c938c3e",
+  "designTheme": {
+    "colorMode": "LIGHT",
+    "font": "HANKEN_GROTESK",
+    "roundness": "ROUND_EIGHT",
+    "customColor": "#1f5c4d",
+    "overrideNeutralColor": "#fafaf8",
+    "overridePrimaryColor": "#1f5c4d",
+    "overrideSecondaryColor": "#e8f5e9",
+    "overrideTertiaryColor": "#1a1a2e"
+  },
+  "screens": {
+    "index": {
+      "id": "7e9dea05eed549de9252386588c0bee1",
+      "sourceScreen": "projects/7818467508193013014/screens/7e9dea05eed549de9252386588c0bee1",
+      "title": "TaxBuddy Landing Page - Full Story",
+      "width": 2560,
+      "height": 12956,
+      "staged": "site/public/index.html"
+    },
+    "how_it_works_scrolly": {
+      "id": "b699d67b7baf4987a4be2fdbe35ca01a",
+      "sourceScreen": "projects/7818467508193013014/screens/b699d67b7baf4987a4be2fdbe35ca01a",
+      "title": "TaxBuddy - How it Works Scrollytelling",
+      "sessionId": "11787472669142933994",
+      "width": 2560,
+      "height": 10730,
+      "generated": "2026-07-15",
+      "local": ".stitch/designs/how-it-works-scrolly.html (+ .png thumbnail)",
+      "note": "Scroll-driven pinned split-column redesign of the #how-it-works section. Static thumbnail only shows one scroll frame (step 3 preview) — the scroll interaction is in the HTML/needs code wiring when ported into public/landing.html."
+    },
+    "_design_md_upload": {
+      "id": "12924961452216287614",
+      "sourceScreen": "projects/7818467508193013014/screens/12924961452216287614",
+      "note": "DESIGN.md upload artifact used to build the design system — not a page."
+    }
+  },
+  "metadata": {
+    "userRole": "OWNER"
+  },
+  "_notes": "IMPORTANT: generate_screen_from_text / edit_screens time out through the MCP client (Claude Code aborts the long request and the abort cancels the server-side job, so nothing commits). Drive them via direct curl instead: POST JSON-RPC {method:'tools/call', params:{name, arguments}} to https://stitch.googleapis.com/mcp with header 'X-Goog-Api-Key' and --max-time 420. Full-page generation ~60s, edits ~90-115s. The 'index' page was generated then extended with two edit_screens passes because a single long prompt gets condensed (Stitch dropped 8 of 11 sections on the first shot)."
+}
