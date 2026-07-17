@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Free Refund Check — Unlock / Sign up | TaxBuddy</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                "surface-container": "#eeeeec",
+                "border-gray": "#E7E5E0",
+                "on-primary-fixed": "#002019",
+                "on-primary": "#ffffff",
+                "on-tertiary-container": "#c5c3de",
+                "tertiary-fixed-dim": "#c6c4df",
+                "on-primary-container": "#96d2bf",
+                "surface-dim": "#dadad8",
+                "on-secondary-fixed": "#131e17",
+                "on-tertiary-fixed": "#1a1a2e",
+                "on-tertiary-fixed-variant": "#45455b",
+                "secondary-fixed-dim": "#bdcabe",
+                "secondary": "#556158",
+                "background": "#f9f9f7",
+                "deep-green": "#1F5C4D",
+                "error-container": "#ffdad6",
+                "surface-variant": "#e2e3e1",
+                "surface-bright": "#f9f9f7",
+                "on-background": "#1a1c1b",
+                "on-secondary-fixed-variant": "#3e4a41",
+                "on-tertiary": "#ffffff",
+                "muted-slate": "#6B7280",
+                "error": "#ba1a1a",
+                "surface-tint": "#2d6859",
+                "on-secondary-container": "#5b675e",
+                "secondary-container": "#d9e6da",
+                "outline-variant": "#bfc9c4",
+                "forest-green": "#2E7D32",
+                "inverse-on-surface": "#f1f1ef",
+                "secondary-fixed": "#d9e6da",
+                "warm-cream": "#FAFAF8",
+                "pure-white": "#FFFFFF",
+                "primary-fixed-dim": "#96d3bf",
+                "surface-container-high": "#e8e8e6",
+                "primary-fixed": "#b2efdb",
+                "surface": "#f9f9f7",
+                "ink-navy": "#1A1A2E",
+                "tertiary": "#3a394f",
+                "surface-container-highest": "#e2e3e1",
+                "surface-container-lowest": "#ffffff",
+                "on-surface-variant": "#404945",
+                "primary": "#004437",
+                "on-secondary": "#ffffff",
+                "tertiary-container": "#515067",
+                "inverse-primary": "#96d3bf",
+                "mint-success": "#E8F5E9",
+                "on-error": "#ffffff",
+                "on-surface": "#1a1c1b",
+                "outline": "#707975",
+                "tertiary-fixed": "#e2e0fc",
+                "inverse-surface": "#2f3130",
+                "surface-container-low": "#f4f4f2",
+                "primary-container": "#1f5c4d",
+                "on-error-container": "#93000a",
+                "on-primary-fixed-variant": "#0f5042"
+            },
+            "borderRadius": {
+                "DEFAULT": "0.25rem",
+                "lg": "0.5rem",
+                "xl": "0.75rem",
+                "full": "9999px"
+            },
+            "spacing": {
+                "margin-mobile": "16px",
+                "gutter": "24px",
+                "container-max": "1200px",
+                "base-unit": "4px",
+                "section-gap-md": "48px",
+                "section-gap-lg": "80px"
+            },
+            "fontFamily": {
+                "body-lg": ["Hanken Grotesk"],
+                "body-md": ["Hanken Grotesk"],
+                "label-md": ["Hanken Grotesk"],
+                "headline-md": ["Hanken Grotesk"],
+                "headline-xl": ["Hanken Grotesk"],
+                "headline-lg-mobile": ["Hanken Grotesk"],
+                "stats-numeric": ["Hanken Grotesk"],
+                "headline-lg": ["Hanken Grotesk"]
+            },
+            "fontSize": {
+                "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                "label-md": ["14px", {"lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                "headline-xl": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                "headline-lg-mobile": ["28px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                "stats-numeric": ["24px", {"lineHeight": "1", "fontWeight": "700"}],
+                "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "700"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #f9f9f7;
+            font-family: 'Hanken Grotesk', sans-serif;
+            -webkit-font-smoothing: antialiased;
+        }
+        .tabular-nums {
+            font-variant-numeric: tabular-nums;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            display: inline-block;
+            vertical-align: middle;
+        }
+        .custom-shadow {
+            box-shadow: 0 4px 20px rgba(26, 26, 46, 0.04);
+        }
+        .split-layout {
+            height: 100vh;
+            display: flex;
+        }
+        @media (max-width: 768px) {
+            .split-layout {
+                flex-direction: column;
+                height: auto;
+            }
+            .panel-left {
+                order: 2;
+                padding: 48px 16px;
+            }
+            .panel-right {
+                order: 1;
+                padding: 48px 16px;
+            }
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface">
+<!-- Top Navigation (Shell Invisible on focused Transactional pages) -->
+<header class="fixed top-0 left-0 right-0 z-50 bg-transparent">
+<div class="flex justify-between items-center w-full px-margin-mobile md:px-gutter max-w-container-max mx-auto h-16">
+<div class="text-headline-md font-headline-md text-deep-green">TaxBuddy</div>
+</div>
+</header>
+<main class="split-layout">
+<!-- Left Panel: Warm Cream, Rewards & Content -->
+<section class="panel-left flex-1 bg-warm-cream flex items-center justify-center p-gutter">
+<div class="max-w-md w-full space-y-12">
+<!-- Reward Card -->
+<div class="bg-pure-white rounded-xl p-10 custom-shadow border border-border-gray text-center transition-transform hover:scale-[1.02] duration-300">
+<h2 class="font-label-md text-label-md text-muted-slate mb-4 uppercase tracking-wider">Estimated Tax Recovery</h2>
+<div class="font-stats-numeric text-[64px] tabular-nums text-deep-green leading-none font-extrabold mb-2">
+                        +$1,240
+                    </div>
+<p class="font-body-md text-body-md text-secondary">waiting to be unlocked</p>
+</div>
+<!-- Checklist -->
+<div class="space-y-6 px-4">
+<div class="flex items-start gap-4">
+<div class="w-8 h-8 rounded-full bg-mint-success flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-forest-green text-[20px]" style="font-variation-settings: 'wght' 700;">check</span>
+</div>
+<div>
+<h3 class="font-body-lg text-body-lg text-ink-navy font-semibold">Full line-by-line breakdown</h3>
+<p class="font-body-md text-body-md text-muted-slate">See exactly where your missing refund is coming from.</p>
+</div>
+</div>
+<div class="flex items-start gap-4">
+<div class="w-8 h-8 rounded-full bg-mint-success flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-forest-green text-[20px]" style="font-variation-settings: 'wght' 700;">check</span>
+</div>
+<div>
+<h3 class="font-body-lg text-body-lg text-ink-navy font-semibold">Documents saved — no re-uploading</h3>
+<p class="font-body-md text-body-md text-muted-slate">We securely store your 1040 and W-2s for instant filing.</p>
+</div>
+</div>
+<div class="flex items-start gap-4">
+<div class="w-8 h-8 rounded-full bg-mint-success flex items-center justify-center flex-shrink-0">
+<span class="material-symbols-outlined text-forest-green text-[20px]" style="font-variation-settings: 'wght' 700;">check</span>
+</div>
+<div>
+<h3 class="font-body-lg text-body-lg text-ink-navy font-semibold">Generate a corrected 1040-X</h3>
+<p class="font-body-md text-body-md text-muted-slate">Amend your previous filing with professional precision.</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Right Panel: Pure White, Signup Form -->
+<section class="panel-right flex-1 bg-pure-white flex items-center justify-center p-gutter">
+<div class="max-w-[400px] w-full">
+<div class="mb-8">
+<h1 class="font-headline-lg text-headline-lg text-ink-navy mb-2">Create your free account</h1>
+<p class="font-body-md text-body-md text-secondary">Join 40,000+ students reclaiming their taxes.</p>
+</div>
+<!-- Signup Form -->
+<div class="space-y-6">
+<!-- Google Button -->
+<button class="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl border border-border-gray hover:bg-background transition-colors duration-200 font-label-md text-label-md text-ink-navy">
+<svg height="20" viewbox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg">
+<path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
+<path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
+<path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"></path>
+<path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path>
+</svg>
+                        Continue with Google
+                    </button>
+<div class="flex items-center gap-4 text-border-gray">
+<hr class="flex-grow border-t"/>
+<span class="text-label-md font-label-md text-muted-slate">or</span>
+<hr class="flex-grow border-t"/>
+</div>
+<!-- Inputs -->
+<div class="space-y-4">
+<div class="space-y-2">
+<label class="block font-label-md text-label-md text-on-surface-variant" for="email">Email</label>
+<input class="w-full px-4 py-3 bg-pure-white border border-border-gray rounded-lg focus:ring-1 focus:ring-deep-green focus:border-deep-green outline-none transition-all placeholder:text-outline-variant font-body-md text-body-md" id="email" placeholder="name@university.edu" type="email"/>
+</div>
+<div class="space-y-2">
+<label class="block font-label-md text-label-md text-on-surface-variant" for="password">Password</label>
+<input class="w-full px-4 py-3 bg-pure-white border border-border-gray rounded-lg focus:ring-1 focus:ring-deep-green focus:border-deep-green outline-none transition-all placeholder:text-outline-variant font-body-md text-body-md" id="password" placeholder="••••••••" type="password"/>
+</div>
+</div>
+<!-- CTA -->
+<button class="w-full bg-deep-green text-pure-white font-label-md text-label-md py-4 rounded-lg hover:bg-opacity-90 transition-all active:scale-[0.98] custom-shadow">
+                        Unlock my breakdown
+                    </button>
+<!-- Trust Footnote -->
+<div class="flex items-start gap-3 mt-8">
+<span class="material-symbols-outlined text-muted-slate text-[18px]">lock</span>
+<p class="font-label-md text-label-md text-muted-slate leading-relaxed">
+                            Your documents are encrypted and never sold. We only ask you to confirm details after you've seen your results.
+                        </p>
+</div>
+<!-- Footer -->
+<div class="pt-6 text-center border-t border-border-gray">
+<p class="font-body-md text-body-md text-secondary">
+                            Already have an account? <a class="text-deep-green font-semibold hover:underline decoration-2 underline-offset-4" href="#">Sign in.</a>
+</p>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- Simple Accessibility / Interaction Script -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const inputs = document.querySelectorAll('input');
+            inputs.forEach(input => {
+                input.addEventListener('focus', () => {
+                    input.parentElement.querySelector('label').classList.add('text-deep-green');
+                });
+                input.addEventListener('blur', () => {
+                    input.parentElement.querySelector('label').classList.remove('text-deep-green');
+                });
+            });
+
+            // Gentle parallax for the reward card on mouse move
+            const leftPanel = document.querySelector('.panel-left');
+            const card = leftPanel.querySelector('.bg-pure-white');
+            
+            leftPanel.addEventListener('mousemove', (e) => {
+                if (window.innerWidth > 768) {
+                    const rect = leftPanel.getBoundingClientRect();
+                    const x = (e.clientX - rect.left) / rect.width - 0.5;
+                    const y = (e.clientY - rect.top) / rect.height - 0.5;
+                    
+                    card.style.transform = `translate(${x * 20}px, ${y * 20}px) rotateX(${y * -5}deg) rotateY(${x * 5}deg)`;
+                }
+            });
+
+            leftPanel.addEventListener('mouseleave', () => {
+                card.style.transform = `translate(0, 0) rotateX(0) rotateY(0)`;
+            });
+        });
+    </script>
+</body></html>

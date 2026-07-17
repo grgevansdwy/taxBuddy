@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Free Refund Check - TaxBuddy</title>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-tertiary-fixed-variant": "#45455b",
+                        "mint-success": "#E8F5E9",
+                        "surface-dim": "#dadad8",
+                        "surface-container-lowest": "#ffffff",
+                        "on-surface-variant": "#404945",
+                        "secondary": "#556158",
+                        "outline": "#707975",
+                        "on-primary-container": "#96d2bf",
+                        "forest-green": "#2E7D32",
+                        "tertiary-fixed-dim": "#c6c4df",
+                        "tertiary-fixed": "#e2e0fc",
+                        "surface-container-low": "#f4f4f2",
+                        "on-tertiary-container": "#c5c3de",
+                        "on-secondary-container": "#5b675e",
+                        "warm-cream": "#FAFAF8",
+                        "surface-bright": "#f9f9f7",
+                        "on-primary-fixed-variant": "#0f5042",
+                        "primary": "#004437",
+                        "surface-container-high": "#e8e8e6",
+                        "ink-navy": "#1A1A2E",
+                        "error": "#ba1a1a",
+                        "tertiary-container": "#515067",
+                        "on-surface": "#1a1c1b",
+                        "inverse-primary": "#96d3bf",
+                        "on-background": "#1a1c1b",
+                        "secondary-container": "#d9e6da",
+                        "border-gray": "#E7E5E0",
+                        "muted-slate": "#6B7280",
+                        "surface": "#f9f9f7",
+                        "deep-green": "#1F5C4D",
+                        "secondary-fixed": "#d9e6da",
+                        "on-tertiary-fixed": "#1a1a2e",
+                        "on-primary-fixed": "#002019",
+                        "surface-container-highest": "#e2e3e1",
+                        "secondary-fixed-dim": "#bdcabe",
+                        "on-error-container": "#93000a",
+                        "tertiary": "#3a394f",
+                        "pure-white": "#FFFFFF",
+                        "on-primary": "#ffffff",
+                        "primary-fixed-dim": "#96d3bf",
+                        "error-container": "#ffdad6",
+                        "on-tertiary": "#ffffff",
+                        "surface-container": "#eeeeec",
+                        "inverse-on-surface": "#f1f1ef",
+                        "background": "#f9f9f7",
+                        "inverse-surface": "#2f3130",
+                        "on-secondary-fixed-variant": "#3e4a41",
+                        "on-error": "#ffffff",
+                        "primary-fixed": "#b2efdb",
+                        "outline-variant": "#bfc9c4",
+                        "surface-tint": "#2d6859",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed": "#131e17",
+                        "surface-variant": "#e2e3e1",
+                        "primary-container": "#1f5c4d"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "gutter": "24px",
+                        "base-unit": "4px",
+                        "section-gap-md": "48px",
+                        "section-gap-lg": "80px",
+                        "container-max": "1200px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Hanken Grotesk"],
+                        "headline-lg": ["Hanken Grotesk"],
+                        "headline-lg-mobile": ["Hanken Grotesk"],
+                        "label-md": ["Hanken Grotesk"],
+                        "body-md": ["Hanken Grotesk"],
+                        "stats-numeric": ["Hanken Grotesk"],
+                        "headline-xl": ["Hanken Grotesk"],
+                        "body-lg": ["Hanken Grotesk"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                        "headline-lg": ["32px", {"lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                        "headline-lg-mobile": ["28px", {"lineHeight": "1.2", "fontWeight": "700"}],
+                        "label-md": ["14px", {"lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "stats-numeric": ["24px", {"lineHeight": "1", "fontWeight": "700"}],
+                        "headline-xl": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+        body {
+            font-family: 'Hanken Grotesk', sans-serif;
+            background-color: #FAFAF8;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .custom-shadow {
+            box-shadow: 0 4px 20px rgba(26, 26, 46, 0.04);
+        }
+        .dropzone-active {
+            border-color: #1F5C4D;
+            background-color: #f0f7f4;
+        }
+    </style>
+</head>
+<body class="bg-warm-cream text-on-background min-h-screen flex flex-col">
+<!-- TopNavBar Component -->
+<header class="bg-warm-cream dark:bg-on-background border-b border-border-gray dark:border-outline-variant sticky top-0 z-50">
+<div class="flex justify-between items-center h-16 px-margin-mobile md:px-gutter max-w-container-max mx-auto w-full">
+<div class="flex items-center gap-2">
+<img alt="TaxBuddy Logo" class="w-8 h-8 rounded-md" src="https://lh3.googleusercontent.com/aida/AP1WRLt90vvZWj_jarDvbHVl-BTLCdoyN7NUVnxDdTrMdMM20Xhc5IHj10RLGDIwubAdDik0MOZNRBAQQvSUH60AXeaOp_mByQdQse_7Bc2IpIp3okrK6af8ctU2rHbNhp_LI09iTTDfLTJvTMAGgM5VaAJ5V1MGIQQttRMQS-eF1E46Fp8WHrnWKXBHuCcsb0GUDDJML1TsU64fwyCBAdmXj3_fZSnE6hhBefOpPwkDJBvPyKMPA1vcFI3lKw"/>
+<span class="text-headline-md font-headline-md font-bold text-deep-green dark:text-primary-fixed">TaxBuddy</span>
+</div>
+<nav>
+<a class="font-body-md text-body-md text-muted-slate dark:text-outline hover:text-deep-green transition-colors" href="#">Sign In</a>
+</nav>
+</div>
+</header>
+<main class="flex-grow flex flex-col items-center justify-start py-section-gap-md px-margin-mobile md:px-gutter">
+<div class="max-w-[640px] w-full text-center">
+<!-- Hero Block -->
+<div class="mb-12">
+<span class="inline-flex items-center px-4 py-1.5 rounded-full bg-mint-success text-forest-green font-label-md text-label-md mb-6">
+                    Free · No account needed
+                </span>
+<h1 class="font-headline-xl text-headline-xl md:text-headline-xl text-ink-navy mb-4 leading-tight">
+                    Did you overpay the IRS? Find out in 2 minutes.
+                </h1>
+<p class="font-body-lg text-body-lg text-muted-slate max-w-[540px] mx-auto">
+                    Upload your U.S. tax documents and we'll estimate your refund. No signup, no card — just your number.
+                </p>
+</div>
+<!-- Upload Dropzone Card -->
+<div class="bg-pure-white border border-border-gray rounded-[14px] custom-shadow p-6 md:p-10 mb-8 transition-all duration-300" id="dropzone">
+<div class="border-2 border-dashed border-border-gray rounded-xl py-12 px-6 flex flex-col items-center justify-center cursor-pointer hover:border-deep-green transition-colors group">
+<div class="w-16 h-16 bg-surface-container-low rounded-full flex items-center justify-center mb-6 group-hover:bg-mint-success transition-colors">
+<span class="material-symbols-outlined text-[40px] text-deep-green" style="font-variation-settings: 'FILL' 1;">cloud_upload</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-ink-navy mb-2">
+                        Drag &amp; drop your documents, or <span class="text-deep-green underline">browse</span>
+</h3>
+<p class="font-body-md text-body-md text-muted-slate">
+                        W-2, 1042-S, 1099s, and your visa/entry info — PDFs or photos
+                    </p>
+</div>
+<!-- File Chips Row -->
+<div class="mt-8 flex flex-wrap gap-3 justify-center">
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-mint-success border border-forest-green/20 text-forest-green font-label-md text-label-md">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                        W-2
+                    </div>
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-low border border-border-gray text-muted-slate font-label-md text-label-md">
+                        1042-S
+                    </div>
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-low border border-border-gray text-muted-slate font-label-md text-label-md">
+                        1099-INT
+                    </div>
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-low border border-border-gray text-muted-slate font-label-md text-label-md">
+                        1099-B
+                    </div>
+<div class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface-container-low border border-border-gray text-muted-slate font-label-md text-label-md">
+                        1098-T
+                    </div>
+</div>
+</div>
+<!-- Trust Strip -->
+<div class="flex flex-wrap justify-center items-center gap-x-8 gap-y-4 mb-10">
+<div class="flex items-center gap-2 text-muted-slate">
+<span class="material-symbols-outlined text-[20px]">lock</span>
+<span class="font-label-md text-label-md">Bank-level encryption</span>
+</div>
+<div class="flex items-center gap-2 text-muted-slate">
+<span class="material-symbols-outlined text-[20px]">shield_lock</span>
+<span class="font-label-md text-label-md">We never sell your data</span>
+</div>
+<div class="flex items-center gap-2 text-muted-slate">
+<span class="material-symbols-outlined text-[20px]">delete</span>
+<span class="font-label-md text-label-md">Delete anytime</span>
+</div>
+</div>
+<!-- Primary Action -->
+<button class="w-full bg-deep-green text-pure-white py-5 rounded-xl font-headline-md text-headline-md flex items-center justify-center gap-2 hover:opacity-90 active:opacity-100 transition-all shadow-lg shadow-deep-green/10">
+                Estimate my refund
+                <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+<!-- Footnote -->
+<p class="mt-4 font-label-md text-label-md text-muted-slate">
+                Estimate only — confirm details later for your exact figure.
+            </p>
+</div>
+</main>
+<!-- Footer Component -->
+<footer class="bg-warm-cream dark:bg-on-background border-t border-border-gray dark:border-outline-variant">
+<div class="flex flex-col md:flex-row justify-between items-center py-8 px-margin-mobile md:px-gutter max-w-container-max mx-auto w-full">
+<p class="font-label-md text-label-md text-muted-slate dark:text-outline mb-4 md:mb-0">
+                © 2024 TaxBuddy. All rights reserved.
+            </p>
+<div class="flex gap-6">
+<a class="font-label-md text-label-md text-muted-slate dark:text-outline hover:text-deep-green underline decoration-2 underline-offset-4 transition-colors" href="#">Privacy Policy</a>
+<a class="font-label-md text-label-md text-muted-slate dark:text-outline hover:text-deep-green underline decoration-2 underline-offset-4 transition-colors" href="#">Terms of Service</a>
+<a class="font-label-md text-label-md text-muted-slate dark:text-outline hover:text-deep-green underline decoration-2 underline-offset-4 transition-colors" href="#">Help Center</a>
+<a class="font-label-md text-label-md text-muted-slate dark:text-outline hover:text-deep-green underline decoration-2 underline-offset-4 transition-colors" href="#">Security</a>
+</div>
+</div>
+</footer>
+<script>
+        // Micro-interaction for dropzone
+        const dropzone = document.getElementById('dropzone');
+        
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults (e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, highlight, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, unhighlight, false);
+        });
+
+        function highlight(e) {
+            dropzone.classList.add('dropzone-active');
+        }
+
+        function unhighlight(e) {
+            dropzone.classList.remove('dropzone-active');
+        }
+
+        // Simulating file upload
+        dropzone.addEventListener('drop', handleDrop, false);
+
+        function handleDrop(e) {
+            alert('File drop detected. Processing your documents securely...');
+        }
+
+        dropzone.addEventListener('click', () => {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.multiple = true;
+            input.onchange = _ => {
+                alert('Files selected. Estimating your refund...');
+            };
+            input.click();
+        });
+    </script>
+</body></html>
