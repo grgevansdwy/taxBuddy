@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Badge } from "@/components/ui/badge";
+import { Spinner } from "@/components/ui/spinner";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import {
   Select,
@@ -21,13 +21,15 @@ import {
 } from "@/components/onboarding/wizard-nav-row";
 import { FileDropSlot } from "@/components/onboarding/file-drop-slot";
 import { CURRENT_SUPPORTED_TAX_YEAR } from "@/lib/config/taxYear";
-import { EXTRACTION_CONFIDENCE_THRESHOLD } from "@/lib/config/extraction";
 import { formatIsoDate } from "@/lib/format";
 import { fetchFiling } from "@/lib/client/fetchFiling";
 import type { I94Extraction } from "@/lib/extraction/schemas/i94";
 
 type SubStep = "upload" | "confirm" | "blocked";
 type YesNo = "yes" | "no";
+// "" = not yet answered; we no longer pre-select a default so the user has to
+// choose each answer themselves.
+type YesNoUnset = YesNo | "";
 
 const SELECTABLE_TAX_YEARS = Array.from(
   { length: 6 },
@@ -40,21 +42,20 @@ export default function EligibilityPage() {
   const [subStep, setSubStep] = useState<SubStep>("upload");
   const [i94File, setI94File] = useState<File | null>(null);
   const [travelHistoryFile, setTravelHistoryFile] = useState<File | null>(null);
-  const [extraction, setExtraction] = useState<I94Extraction | null>(null);
   const [visaClass, setVisaClass] = useState("");
   const [firstEntryDate, setFirstEntryDate] = useState("");
   const [passportNumber, setPassportNumber] = useState("");
   const [travelHistory, setTravelHistory] = useState<
     I94Extraction["travelHistory"]
   >([]);
-  const [hadEarlierFJMQVisa, setHadEarlierFJMQVisa] = useState<YesNo>("no");
-  const [hasGreenCard, setHasGreenCard] = useState<YesNo>("no");
-  const [appliedForGreenCard, setAppliedForGreenCard] = useState<YesNo>("no");
+  const [hadEarlierFJMQVisa, setHadEarlierFJMQVisa] = useState<YesNoUnset>("");
+  const [hasGreenCard, setHasGreenCard] = useState<YesNoUnset>("");
+  const [appliedForGreenCard, setAppliedForGreenCard] = useState<YesNoUnset>("");
   const [appliedForGreenCardExplanation, setAppliedForGreenCardExplanation] =
     useState("");
-  const [changedVisaType, setChangedVisaType] = useState<YesNo>("no");
+  const [changedVisaType, setChangedVisaType] = useState<YesNoUnset>("");
   const [incomeOnlyInWashington, setIncomeOnlyInWashington] =
-    useState<YesNo>("yes");
+    useState<YesNoUnset>("");
   const [reasoning, setReasoning] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -113,7 +114,6 @@ export default function EligibilityPage() {
 
       // Unpack Extraction into states (prefill next form)
       const data = (await res.json()) as I94Extraction;
-      setExtraction(data);
       setVisaClass(data.visaClass);
       setFirstEntryDate(data.firstEntryDate);
       setPassportNumber(data.passportNumber);
@@ -156,6 +156,18 @@ export default function EligibilityPage() {
   }
 
   async function handleConfirm() {
+    const unanswered = [
+      hadEarlierFJMQVisa,
+      hasGreenCard,
+      appliedForGreenCard,
+      changedVisaType,
+      incomeOnlyInWashington,
+    ].some((answer) => answer === "");
+    if (unanswered) {
+      setError("Please answer all the questions before continuing.");
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
     try {
@@ -221,18 +233,6 @@ export default function EligibilityPage() {
     return (
       <WizardShell step={1} totalSteps={4} title="Confirm what we found">
         <div className="space-y-4">
-          {extraction && (
-            <Badge
-              variant={
-                extraction.confidence >= EXTRACTION_CONFIDENCE_THRESHOLD
-                  ? "secondary"
-                  : "destructive"
-              }
-            >
-              {Math.round(extraction.confidence * 100)}% confidence
-            </Badge>
-          )}
-
           <div className="space-y-1.5">
             <Label htmlFor="visaClass">Visa / status type</Label>
             <Input
@@ -381,8 +381,9 @@ export default function EligibilityPage() {
   }
 
   return (
-    <WizardShell step={1} totalSteps={4} title="Let's check your eligibility">
-      <div className="space-y-4">
+    <>
+      <WizardShell step={1} totalSteps={4} title="Let's check your eligibility">
+        <div className="space-y-4">
         <div className="space-y-1.5">
           <Label htmlFor="taxYear">Tax year</Label>
           <Select value={String(CURRENT_SUPPORTED_TAX_YEAR)}>
@@ -426,15 +427,27 @@ export default function EligibilityPage() {
         <WizardNavRow
           step={1}
           onContinue={handleExtract}
-          continueLabel={isSubmitting ? "Reading documents..." : "Continue"}
+          continueLabel="Continue"
           disabled={!i94File || !travelHistoryFile || isSubmitting}
         />
-        {isSubmitting && (
-          <p className="text-center text-xs text-muted-foreground">
-            This can take up to 30 seconds.
+        </div>
+      </WizardShell>
+
+      {/* While the I-94 + travel history are being read, dim and block the whole
+          page with an overlay (form stays mounted underneath) so nothing else
+          is clickable. */}
+      {isSubmitting && (
+        <div
+          className="fixed inset-0 z-50 flex flex-col items-center justify-center gap-4 bg-black/50 backdrop-blur-sm"
+          role="status"
+          aria-live="polite"
+        >
+          <Spinner className="size-8 text-white" />
+          <p className="text-sm text-white">
+            Reading your I-94 and travel history — this can take up to 30 seconds.
           </p>
-        )}
-      </div>
-    </WizardShell>
+        </div>
+      )}
+    </>
   );
 }

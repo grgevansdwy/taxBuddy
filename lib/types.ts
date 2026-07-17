@@ -306,11 +306,9 @@ export interface InterviewAnswers {
   interestIncome: boolean;
   dividendIncome: boolean;
   soldAssets: boolean;
-  // Optional: saved separately via /api/reduction (which merges rather than
-  // replaces interview_answers), so a checklist POST that omits these never
-  // clobbers what's already there.
+  // Saved with the rest of the interview form via the checklist POST.
   charitableContributions?: number; // Schedule A line 4
-  charitableContributionsConfirmed?: boolean; // true only once the user has actively saved (0 counts)
+  charitableContributionsConfirmed?: boolean; // true once the interview form has been submitted (0 counts)
 }
 
 // ---------- Wizard ----------

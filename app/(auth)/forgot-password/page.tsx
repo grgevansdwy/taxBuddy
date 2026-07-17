@@ -4,7 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { toast } from 'sonner'
 import { createClient } from '@/lib/supabase/client'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { AuthPanel } from '@/components/auth-panel'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 
@@ -32,79 +32,62 @@ export default function ForgotPasswordPage() {
     setLoading(false)
   }
 
+  const backToSignIn = (
+    <Link href="/login" className="font-medium text-primary hover:underline">
+      ← Back to sign in
+    </Link>
+  )
+
   if (sent) {
     return (
-      <div className="w-full max-w-sm">
-        <Card>
-          <CardHeader className="text-center pb-2">
-            <div className="mx-auto mb-3 flex size-12 items-center justify-center rounded-full bg-accent text-2xl">
-              📬
-            </div>
-            <CardTitle className="text-xl">Check your email</CardTitle>
-            <CardDescription>
-              We sent a password reset link to <strong>{email}</strong>
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4 pt-2">
-            <p className="text-center text-sm text-muted-foreground">
-              Click the link in the email to reset your password. It may take a minute to arrive.
-            </p>
-            <Button
-              variant="outline"
-              className="w-full"
-              onClick={() => setSent(false)}
-            >
-              Try a different email
-            </Button>
-          </CardContent>
-        </Card>
-        <p className="mt-6 text-center text-sm text-muted-foreground">
-          <Link href="/login" className="font-medium text-primary hover:underline">
-            ← Back to sign in
-          </Link>
-        </p>
-      </div>
+      <AuthPanel
+        icon="📬"
+        title="Check your email"
+        description={
+          <>
+            We sent a password reset link to <strong>{email}</strong>
+          </>
+        }
+        footer={backToSignIn}
+      >
+        <div className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Click the link in the email to reset your password. It may take a minute to arrive.
+          </p>
+          <Button variant="outline" className="w-full" onClick={() => setSent(false)}>
+            Try a different email
+          </Button>
+        </div>
+      </AuthPanel>
     )
   }
 
   return (
-    <div className="w-full max-w-sm">
-      <Card>
-        <CardHeader className="text-center pb-2">
-          <CardTitle className="text-xl">Forgot your password?</CardTitle>
-          <CardDescription>
-            No worries — we&apos;ll send you a reset link
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4 pt-4">
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium" htmlFor="email">
-                Email
-              </label>
-              <Input
-                id="email"
-                type="email"
-                placeholder="you@university.edu"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                autoComplete="email"
-              />
-            </div>
+    <AuthPanel
+      title="Forgot your password?"
+      description="No worries — we'll send you a reset link"
+      footer={backToSignIn}
+    >
+      <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="space-y-1.5">
+          <label className="text-sm font-medium" htmlFor="email">
+            Email
+          </label>
+          <Input
+            id="email"
+            type="email"
+            placeholder="you@university.edu"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoComplete="email"
+          />
+        </div>
 
-            <Button type="submit" className="w-full" disabled={loading}>
-              {loading ? 'Sending…' : 'Send reset link'}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
-
-      <p className="mt-6 text-center text-sm text-muted-foreground">
-        <Link href="/login" className="font-medium text-primary hover:underline">
-          ← Back to sign in
-        </Link>
-      </p>
-    </div>
+        <Button type="submit" className="w-full" disabled={loading}>
+          {loading ? 'Sending…' : 'Send reset link'}
+        </Button>
+      </form>
+    </AuthPanel>
   )
 }

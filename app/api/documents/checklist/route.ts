@@ -7,6 +7,7 @@ import type { DocType, InterviewAnswers } from "@/lib/types";
 interface ChecklistRequestBody extends InterviewAnswers {
   taxYear: number;
   digitalAssets: boolean;
+  charitableContributions: number;
 }
 
 // Lets the Stage 2 upload page re-fetch the checklist Stage 1 already computed,
@@ -41,7 +42,7 @@ export async function POST(request: Request) {
   }
 
   const body = (await request.json()) as ChecklistRequestBody;
-  const { taxYear, digitalAssets, ...interview } = body;
+  const { taxYear, digitalAssets, charitableContributions, ...interview } = body;
 
   const documents = computeDocumentChecklist(interview);
   const explanation = explainChecklist(documents);
@@ -58,12 +59,15 @@ export async function POST(request: Request) {
       user_id: user.id,
       tax_year: taxYear,
       stage: "documents",
-      // charitableContributions/charitableContributionsConfirmed live in
-      // this same column but are saved separately via /api/reduction —
-      // merge rather than replace so this write can't clobber those.
+      // The whole interview form saves together here, charitable contributions
+      // included — merge (not replace) so unrelated keys already on the row
+      // survive. charitableContributionsConfirmed stays true for the filing
+      // route's response contract (the value is confirmed once submitted).
       interview_page: {
         ...(existing?.interview_page ?? {}),
         ...interview,
+        charitableContributions,
+        charitableContributionsConfirmed: true,
       },
       documents_needed: documents,
       // digitalAssets is asked on this page but lives on profile_page (it's

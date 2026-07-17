@@ -26,12 +26,11 @@ export default async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const pathname = request.nextUrl.pathname
 
-  // Root route: signed-in users go straight to the app; everyone else sees the
-  // static marketing page. Rewrite (not redirect) keeps the URL at "/".
+  // Root route: everyone — signed-in or not — sees the marketing landing page
+  // (they may just want to look at it). Signed-in users reach the app via the
+  // nav / "Start filing". Rewrite (not redirect) keeps the URL at "/".
   if (pathname === '/') {
-    const destination = user
-      ? NextResponse.redirect(new URL('/dashboard', request.url))
-      : NextResponse.rewrite(new URL('/landing.html', request.url))
+    const destination = NextResponse.rewrite(new URL('/landing.html', request.url))
     supabaseResponse.cookies
       .getAll()
       .forEach((cookie) => destination.cookies.set(cookie))

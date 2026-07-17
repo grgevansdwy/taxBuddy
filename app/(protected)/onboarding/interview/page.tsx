@@ -13,6 +13,9 @@ import { fetchFiling } from "@/lib/client/fetchFiling";
 import type { InterviewAnswers } from "@/lib/types";
 
 type YesNo = "yes" | "no";
+// "" = not yet answered; we no longer pre-select a default so the user has to
+// choose each answer themselves.
+type YesNoUnset = YesNo | "";
 type ScholarshipCoverage = InterviewAnswers["scholarshipCoverage"];
 
 export default function InterviewPage() {
@@ -21,16 +24,18 @@ export default function InterviewPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const [workedInUs, setWorkedInUs] = useState<YesNo>("no");
-  const [onOPT, setOnOPT] = useState<YesNo>("no");
-  const [scholarshipCoverage, setScholarshipCoverage] = useState<ScholarshipCoverage>("none");
-  const [digitalAssets, setDigitalAssets] = useState<YesNo>("no");
+  const [workedInUs, setWorkedInUs] = useState<YesNoUnset>("");
+  const [onOPT, setOnOPT] = useState<YesNoUnset>("");
+  const [scholarshipCoverage, setScholarshipCoverage] = useState<ScholarshipCoverage | "">("");
+  const [digitalAssets, setDigitalAssets] = useState<YesNoUnset>("");
   const [interestIncome, setInterestIncome] = useState(false);
   const [dividendIncome, setDividendIncome] = useState(false);
   const [soldAssets, setSoldAssets] = useState(false);
 
+  // Charitable contributions are part of this one form now — a normal field
+  // saved with everything else on Continue (previously a separate blur-save to
+  // /api/reduction, which made it feel like a different form).
   const [charitableContributions, setCharitableContributions] = useState(0);
-  const [charitableConfirmed, setCharitableConfirmed] = useState(false);
 
   // Rehydrate from Supabase on mount so back-navigation from a later step
   // doesn't show empty fields for work the user already did.
@@ -50,13 +55,22 @@ export default function InterviewPage() {
           setDigitalAssets(data.profile.digitalAssets ? "yes" : "no");
         }
         setCharitableContributions(data.charitableContributions ?? 0);
-        setCharitableConfirmed(data.charitableContributionsConfirmed ?? false);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Something went wrong."))
       .finally(() => setIsHydrating(false));
   }, []);
 
   async function handleSubmit() {
+    const unanswered =
+      workedInUs === "" ||
+      scholarshipCoverage === "" ||
+      digitalAssets === "" ||
+      (workedInUs === "yes" && onOPT === "");
+    if (unanswered) {
+      setError("Please answer all the questions before continuing.");
+      return;
+    }
+
     setIsSubmitting(true);
     setError(null);
     try {
@@ -65,7 +79,7 @@ export default function InterviewPage() {
         onOPT: workedInUs === "yes" && onOPT === "yes",
         hasSSN: false,
         hasOrAppliedItin: false,
-        scholarshipCoverage,
+        scholarshipCoverage: scholarshipCoverage as ScholarshipCoverage,
         interestIncome,
         dividendIncome,
         soldAssets,
@@ -77,6 +91,7 @@ export default function InterviewPage() {
           taxYear: CURRENT_SUPPORTED_TAX_YEAR,
           ...interview,
           digitalAssets: digitalAssets === "yes",
+          charitableContributions,
         }),
       });
       if (!res.ok) {
@@ -183,11 +198,7 @@ export default function InterviewPage() {
           </label>
         </div>
 
-        <CharitableContributionCard
-          initialValue={charitableContributions}
-          wasAlreadySaved={charitableConfirmed}
-          onConfirmed={() => setCharitableConfirmed(true)}
-        />
+        <CharitableContributionCard value={charitableContributions} onChange={setCharitableContributions} />
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
@@ -195,7 +206,7 @@ export default function InterviewPage() {
           step={3}
           onContinue={handleSubmit}
           continueLabel={isSubmitting ? "Working it out..." : "Continue"}
-          disabled={isSubmitting || !charitableConfirmed}
+          disabled={isSubmitting}
         />
       </div>
     </WizardShell>

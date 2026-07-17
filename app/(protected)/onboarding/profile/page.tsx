@@ -21,6 +21,9 @@ import { fetchFiling } from "@/lib/client/fetchFiling";
 import type { Address, FilingStatus, ForeignAddress } from "@/lib/types";
 
 type YesNo = "yes" | "no";
+// "" = not yet answered; we no longer pre-select a default so the user has to
+// choose each answer themselves.
+type YesNoUnset = YesNo | "";
 type PriorReturnFormChoice = "1040" | "1040-NR" | "other";
 
 type FieldErrors = Partial<
@@ -35,7 +38,10 @@ type FieldErrors = Partial<
     | "foreignLine1"
     | "foreignCountry"
     | "foreignPostalCode"
+    | "hasSSN"
+    | "hasOrAppliedItin"
     | "ssnOrItin"
+    | "priorReturnFiled"
     | "priorReturnYear"
     | "priorReturnFormOther",
     string
@@ -79,15 +85,16 @@ export default function ProfilePage() {
 
   const [filingStatus, setFilingStatus] = useState<FilingStatus>("single");
 
-  const [hasSSN, setHasSSN] = useState<YesNo>("yes");
-  const [hasOrAppliedItin, setHasOrAppliedItin] = useState<YesNo>("no");
+  const [hasSSN, setHasSSN] = useState<YesNoUnset>("");
+  const [hasOrAppliedItin, setHasOrAppliedItin] = useState<YesNoUnset>("");
   const [ssnOrItin, setSsnOrItin] = useState("");
 
-  // Defaults assume the common case for a year-2+ F-1 filer; overridden below
-  // by a saved answer, if one exists, once hydration finishes.
-  const [priorReturnFiled, setPriorReturnFiled] = useState<YesNo>("yes");
-  const [priorReturnYear, setPriorReturnYear] = useState(String(CURRENT_SUPPORTED_TAX_YEAR - 1));
-  const [priorReturnFormChoice, setPriorReturnFormChoice] = useState<PriorReturnFormChoice>("1040-NR");
+  // Not pre-filled — the user answers whether they've filed before, and only
+  // then do the year/form fields appear (both start blank). A saved answer
+  // overrides these once hydration finishes.
+  const [priorReturnFiled, setPriorReturnFiled] = useState<YesNoUnset>("");
+  const [priorReturnYear, setPriorReturnYear] = useState("");
+  const [priorReturnFormChoice, setPriorReturnFormChoice] = useState<PriorReturnFormChoice | "">("");
   const [priorReturnFormOther, setPriorReturnFormOther] = useState("");
 
   const needsW7 = hasSSN === "no" && hasOrAppliedItin === "no";
@@ -162,22 +169,30 @@ export default function ProfilePage() {
     if (!foreignCountry) errors.foreignCountry = "Country is required.";
     if (!foreignPostalCode.trim()) errors.foreignPostalCode = "Postal code is required.";
 
-    if (hasSSN === "yes") {
+    if (hasSSN === "") {
+      errors.hasSSN = "Please tell us whether you have an SSN.";
+    } else if (hasSSN === "yes") {
       if (!SSN_RE.test(ssnOrItin.trim())) {
         errors.ssnOrItin = "Enter a valid SSN (e.g. 123-45-6789).";
       }
-    } else if (hasOrAppliedItin === "yes") {
-      if (!ITIN_RE.test(ssnOrItin.trim())) {
+    } else {
+      if (hasOrAppliedItin === "") {
+        errors.hasOrAppliedItin = "Please tell us whether you have or applied for an ITIN.";
+      } else if (hasOrAppliedItin === "yes" && !ITIN_RE.test(ssnOrItin.trim())) {
         errors.ssnOrItin = "Enter a valid ITIN — it starts with 9 (e.g. 912-34-5678).";
       }
     }
 
-    if (priorReturnFiled === "yes") {
+    if (priorReturnFiled === "") {
+      errors.priorReturnFiled = "Please tell us whether you've filed a US tax return before.";
+    } else if (priorReturnFiled === "yes") {
       const year = Number(priorReturnYear);
       if (!/^\d{4}$/.test(priorReturnYear.trim()) || year < 2000 || year >= CURRENT_SUPPORTED_TAX_YEAR) {
         errors.priorReturnYear = `Enter a year between 2000 and ${CURRENT_SUPPORTED_TAX_YEAR - 1}.`;
       }
-      if (priorReturnFormChoice === "other" && !priorReturnFormOther.trim()) {
+      if (priorReturnFormChoice === "") {
+        errors.priorReturnFormOther = "Select which form you filed.";
+      } else if (priorReturnFormChoice === "other" && !priorReturnFormOther.trim()) {
         errors.priorReturnFormOther = "Enter which form you filed.";
       }
     }
@@ -391,6 +406,7 @@ export default function ProfilePage() {
               <RadioGroupItem value="no" /> No
             </label>
           </RadioGroup>
+          {fieldErrors.hasSSN && <p className="text-xs text-destructive">{fieldErrors.hasSSN}</p>}
         </div>
 
         {hasSSN === "yes" && (
@@ -421,6 +437,9 @@ export default function ProfilePage() {
                 <RadioGroupItem value="no" /> No
               </label>
             </RadioGroup>
+            {fieldErrors.hasOrAppliedItin && (
+              <p className="text-xs text-destructive">{fieldErrors.hasOrAppliedItin}</p>
+            )}
           </div>
         )}
 
@@ -458,6 +477,9 @@ export default function ProfilePage() {
               <RadioGroupItem value="no" /> No
             </label>
           </RadioGroup>
+          {fieldErrors.priorReturnFiled && (
+            <p className="text-xs text-destructive">{fieldErrors.priorReturnFiled}</p>
+          )}
         </div>
 
         {priorReturnFiled === "yes" && (

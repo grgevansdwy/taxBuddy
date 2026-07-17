@@ -14,9 +14,11 @@ type Phase = "upload" | "processing";
 export function Income1042SSlot({
   initialValue,
   onItemsChange,
+  onProcessingChange,
 }: {
   initialValue: F1042SData[];
   onItemsChange?: (items: F1042SData[]) => void;
+  onProcessingChange?: (processing: boolean) => void;
 }) {
   const [items, setItems] = useState<F1042SData[]>(initialValue);
   const [phase, setPhase] = useState<Phase>("upload");
@@ -26,6 +28,11 @@ export function Income1042SSlot({
     onItemsChange?.(items);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items]);
+
+  useEffect(() => {
+    onProcessingChange?.(phase === "processing");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   async function handleFile(file: File | null) {
     if (!file) return;

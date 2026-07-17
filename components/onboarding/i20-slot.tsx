@@ -14,9 +14,11 @@ type Phase = "upload" | "processing";
 export function I20Slot({
   initialSchool,
   onConfirmedChange,
+  onProcessingChange,
 }: {
   initialSchool: SchoolInfo | null;
   onConfirmedChange?: (confirmed: boolean) => void;
+  onProcessingChange?: (processing: boolean) => void;
 }) {
   const [confirmed, setConfirmed] = useState(Boolean(initialSchool));
   const [phase, setPhase] = useState<Phase>("upload");
@@ -26,6 +28,11 @@ export function I20Slot({
     onConfirmedChange?.(confirmed);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [confirmed]);
+
+  useEffect(() => {
+    onProcessingChange?.(phase === "processing");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   async function handleFile(file: File | null) {
     if (!file) return;

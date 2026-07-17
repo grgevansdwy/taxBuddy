@@ -14,9 +14,11 @@ type Phase = "upload" | "processing";
 export function W2Slot({
   initialValue,
   onItemsChange,
+  onProcessingChange,
 }: {
   initialValue: W2Data[];
   onItemsChange?: (items: W2Data[]) => void;
+  onProcessingChange?: (processing: boolean) => void;
 }) {
   const [items, setItems] = useState<W2Data[]>(initialValue);
   const [phase, setPhase] = useState<Phase>("upload");
@@ -26,6 +28,11 @@ export function W2Slot({
     onItemsChange?.(items);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [items]);
+
+  useEffect(() => {
+    onProcessingChange?.(phase === "processing");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   async function handleFile(file: File | null) {
     if (!file) return;

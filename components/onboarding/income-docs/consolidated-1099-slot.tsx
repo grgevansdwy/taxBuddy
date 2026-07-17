@@ -44,6 +44,7 @@ export function Consolidated1099Slot({
   onDivsChange,
   onBsChange,
   onDasChange,
+  onProcessingChange,
 }: {
   initialInts: F1099INTData[];
   initialDivs: F1099DIVData[];
@@ -53,6 +54,7 @@ export function Consolidated1099Slot({
   onDivsChange?: (items: F1099DIVData[]) => void;
   onBsChange?: (items: F1099BData[]) => void;
   onDasChange?: (items: F1099DAData[]) => void;
+  onProcessingChange?: (processing: boolean) => void;
 }) {
   const [ints, setInts] = useState<F1099INTData[]>(initialInts);
   const [divs, setDivs] = useState<F1099DIVData[]>(initialDivs);
@@ -78,6 +80,10 @@ export function Consolidated1099Slot({
     onDasChange?.(das);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [das]);
+  useEffect(() => {
+    onProcessingChange?.(phase === "processing");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [phase]);
 
   async function handleFile(file: File | null) {
     if (!file) return;
