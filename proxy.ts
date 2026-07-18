@@ -37,6 +37,16 @@ export default async function proxy(request: NextRequest) {
     return destination
   }
 
+  // Free "Refund Check" pre-signup funnel — a static no-auth flow. Rewrite the
+  // clean "/check" URL to the static page in public/.
+  if (pathname === '/check') {
+    const destination = NextResponse.rewrite(new URL('/check.html', request.url))
+    supabaseResponse.cookies
+      .getAll()
+      .forEach((cookie) => destination.cookies.set(cookie))
+    return destination
+  }
+
   if (!user && pathname.startsWith('/dashboard')) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'

@@ -1,0 +1,794 @@
+<!DOCTYPE html>
+<html class="light scroll-smooth" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Free Refund Check — TaxBuddy</title>
+<meta name="description" content="Check if you overpaid the IRS in 2 minutes. No signup needed. Upload your U.S. tax documents and get an instant refund estimate."/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+    tailwind.config = {
+        darkMode: "class",
+        theme: {
+            extend: {
+                colors: {
+                    "warm-cream": "#FAFAF8",
+                    "pure-white": "#FFFFFF",
+                    "ink-navy": "#1A1A2E",
+                    "deep-green": "#1F5C4D",
+                    "primary": "#004437",
+                    "primary-fixed": "#b2efdb",
+                    "primary-fixed-dim": "#96d3bf",
+                    "mint-success": "#E8F5E9",
+                    "forest-green": "#2E7D32",
+                    "muted-slate": "#6B7280",
+                    "secondary": "#556158",
+                    "border-gray": "#E7E5E0",
+                    "on-surface": "#1a1c1b",
+                    "on-surface-variant": "#404945",
+                    "on-background": "#1a1c1b",
+                    "surface-container-low": "#f4f4f2",
+                    "background": "#f9f9f7",
+                    "outline": "#707975",
+                    "outline-variant": "#bfc9c4"
+                },
+                borderRadius: { "DEFAULT": "0.25rem", "lg": "0.5rem", "xl": "0.75rem", "full": "9999px" },
+                spacing: { "margin-mobile": "16px", "gutter": "24px", "base-unit": "4px", "section-gap-md": "48px", "section-gap-lg": "80px", "container-max": "1200px" },
+                fontFamily: {
+                    "headline-xl": ["Hanken Grotesk"], "headline-lg": ["Hanken Grotesk"], "headline-lg-mobile": ["Hanken Grotesk"],
+                    "headline-md": ["Hanken Grotesk"], "body-lg": ["Hanken Grotesk"], "body-md": ["Hanken Grotesk"],
+                    "label-md": ["Hanken Grotesk"], "stats-numeric": ["Hanken Grotesk"]
+                },
+                fontSize: {
+                    "headline-xl": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "800" }],
+                    "headline-lg": ["32px", { "lineHeight": "1.2", "letterSpacing": "-0.01em", "fontWeight": "700" }],
+                    "headline-lg-mobile": ["28px", { "lineHeight": "1.2", "fontWeight": "700" }],
+                    "headline-md": ["24px", { "lineHeight": "1.3", "fontWeight": "600" }],
+                    "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                    "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                    "label-md": ["14px", { "lineHeight": "1", "letterSpacing": "0.02em", "fontWeight": "600" }],
+                    "stats-numeric": ["24px", { "lineHeight": "1", "fontWeight": "700" }]
+                }
+            }
+        }
+    }
+</script>
+<style>
+    body { font-family: 'Hanken Grotesk', sans-serif; -webkit-font-smoothing: antialiased; }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    .custom-shadow { box-shadow: 0 4px 20px rgba(26, 26, 46, 0.04); }
+    .dropzone-active { border-color: #1F5C4D; background-color: #f0f7f4; }
+    .circular-progress {
+        background: radial-gradient(closest-side, white 79%, transparent 80% 100%),
+                    conic-gradient(#1F5C4D 72%, #E7E5E0 0);
+    }
+    @keyframes fadeRise { 0% { opacity: 0; transform: translateY(16px); } 100% { opacity: 1; transform: translateY(0); } }
+    .fade-rise-in { animation: fadeRise 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
+    [data-step][hidden] { display: none; }
+</style>
+</head>
+<body class="bg-warm-cream text-on-background min-h-screen flex flex-col">
+
+<!-- Shared header -->
+<header class="bg-warm-cream border-b border-border-gray sticky top-0 z-50">
+<div class="flex justify-between items-center h-16 px-margin-mobile md:px-gutter max-w-container-max mx-auto w-full">
+<a class="flex items-center gap-2" href="/">
+<span class="material-symbols-outlined text-deep-green" style="font-variation-settings: 'FILL' 1;">verified_user</span>
+<span class="text-headline-md font-headline-md font-bold text-deep-green">TaxBuddy</span>
+</a>
+<a class="font-body-md text-body-md text-muted-slate hover:text-deep-green transition-colors" href="/login">Sign In</a>
+</div>
+</header>
+
+<main class="flex-grow flex flex-col">
+
+<!-- ============ STEP 1 — UPLOAD ============ -->
+<section data-step="1" class="flex-grow flex flex-col items-center justify-start py-section-gap-md px-margin-mobile md:px-gutter">
+<div class="max-w-[640px] w-full">
+<!-- Progress -->
+<div class="mb-8">
+<div class="w-full h-1 bg-border-gray flex rounded-full overflow-hidden mb-3">
+<div class="w-1/3 bg-deep-green h-full"></div>
+<div class="w-1/3 bg-border-gray h-full"></div>
+<div class="w-1/3 bg-border-gray h-full"></div>
+</div>
+<span class="font-label-md text-label-md text-muted-slate uppercase tracking-wider">Step 1 of 3 — Upload</span>
+</div>
+<div class="text-center">
+<div class="mb-12">
+<span class="inline-flex items-center px-4 py-1.5 rounded-full bg-mint-success text-forest-green font-label-md text-label-md mb-6">Free · No account needed</span>
+<h1 class="font-headline-xl text-headline-xl text-ink-navy mb-4 leading-tight">Did you overpay the IRS? Find out in 2 minutes.</h1>
+<p class="font-body-lg text-body-lg text-muted-slate max-w-[540px] mx-auto">Upload your U.S. tax documents and we'll estimate your refund. No signup, no card — just your number.</p>
+</div>
+<!-- Dropzone -->
+<div class="bg-pure-white border border-border-gray rounded-[14px] custom-shadow p-6 md:p-10 mb-8 transition-all duration-300" id="dropzone">
+<label class="border-2 border-dashed border-border-gray rounded-xl py-12 px-6 flex flex-col items-center justify-center cursor-pointer hover:border-deep-green transition-colors group" for="file-input">
+<div class="w-16 h-16 bg-surface-container-low rounded-full flex items-center justify-center mb-6 group-hover:bg-mint-success transition-colors">
+<span class="material-symbols-outlined text-[40px] text-deep-green" style="font-variation-settings: 'FILL' 1;">cloud_upload</span>
+</div>
+<h3 class="font-headline-md text-headline-md text-ink-navy mb-2">Drag &amp; drop your documents, or <span class="text-deep-green underline">browse</span></h3>
+<p class="font-body-md text-body-md text-muted-slate text-center">W-2 — add your 1042-S or 1099 (INT/DIV/B) too if you have them. PDFs or photos.</p>
+<input accept=".pdf,image/*" class="sr-only" id="file-input" multiple type="file"/>
+</label>
+<!-- Detected-document chips: grey by default, flip green when a matching doc is read -->
+<div class="mt-8 flex flex-wrap gap-3 justify-center items-center" id="chips">
+<div data-chip="w2" class="px-3 py-1.5 rounded-full bg-surface-container-low border border-border-gray text-muted-slate font-label-md text-label-md flex items-center gap-1.5 transition-colors" title="W-2 — Wage and Tax Statement (federal tax withheld)"><span class="material-symbols-outlined text-[16px] hidden" data-chip-check style="font-variation-settings: 'FILL' 1;">check_circle</span>W-2</div>
+<div data-chip="f1042s" class="px-3 py-1.5 rounded-full bg-surface-container-low border border-border-gray text-muted-slate font-label-md text-label-md flex items-center gap-1.5 transition-colors" title="1042-S — scholarship / treaty-exempt income and its withholding (optional)"><span class="material-symbols-outlined text-[16px] hidden" data-chip-check style="font-variation-settings: 'FILL' 1;">check_circle</span>1042-S <span class="text-outline font-normal">· optional</span></div>
+<div data-chip="f1099" class="px-3 py-1.5 rounded-full bg-surface-container-low border border-border-gray text-muted-slate font-label-md text-label-md flex items-center gap-1.5 transition-colors" title="1099 — combined Interest / Dividends / Broker statement (optional)"><span class="material-symbols-outlined text-[16px] hidden" data-chip-check style="font-variation-settings: 'FILL' 1;">check_circle</span>1099 (INT/DIV/B) <span class="text-outline font-normal">· optional</span></div>
+</div>
+<!-- Per-file status rows (name · reading… / detected type / error) -->
+<div class="mt-6 space-y-2 hidden" id="file-list"></div>
+</div>
+<!-- Trust strip -->
+<div class="flex flex-wrap justify-center items-center gap-x-8 gap-y-4 mb-10">
+<div class="flex items-center gap-2 text-muted-slate"><span class="material-symbols-outlined text-[20px]">lock</span><span class="font-label-md text-label-md">Bank-level encryption</span></div>
+<div class="flex items-center gap-2 text-muted-slate"><span class="material-symbols-outlined text-[20px]">shield</span><span class="font-label-md text-label-md">We never sell your data</span></div>
+<div class="flex items-center gap-2 text-muted-slate"><span class="material-symbols-outlined text-[20px]">delete</span><span class="font-label-md text-label-md">Delete anytime</span></div>
+</div>
+<!-- Citizenship — the one background fact that materially moves the estimate
+     (India's standard deduction, treaty dividend rates & scholarship exemptions).
+     Optional: left blank, no treaty benefit is applied. -->
+<div class="mb-6 text-left">
+<label class="block font-label-md text-label-md text-on-surface-variant mb-2" for="country">Country of citizenship <span class="text-muted-slate font-normal">· optional, improves accuracy</span></label>
+<select class="w-full px-4 py-3 bg-pure-white border border-border-gray rounded-lg focus:ring-1 focus:ring-deep-green focus:border-deep-green outline-none transition-all font-body-md text-body-md text-ink-navy" id="country">
+<option value="">Select your country</option>
+</select>
+</div>
+<button id="estimate-btn" disabled class="w-full bg-deep-green text-pure-white py-5 rounded-xl font-headline-md text-headline-md flex items-center justify-center gap-2 hover:opacity-90 active:opacity-100 transition-all shadow-lg shadow-deep-green/10 disabled:opacity-40 disabled:cursor-not-allowed"><span id="estimate-btn-label">Estimate my refund</span><span class="material-symbols-outlined" id="estimate-btn-icon">arrow_forward</span></button>
+<p class="mt-4 font-label-md text-label-md text-muted-slate" id="estimate-hint">Upload at least one document to get your estimate.</p>
+<p class="mt-2 font-label-md text-label-md text-deep-green">Already filed? You'll be able to score your existing 1040-NR next.</p>
+</div>
+</div>
+</section>
+
+<!-- ============ STEP 2 — SCORE ============ -->
+<section data-step="2" hidden class="flex-grow flex flex-col items-center px-margin-mobile md:px-gutter">
+<div class="w-full max-w-[640px] mt-12 mb-8">
+<div class="w-full h-1 bg-border-gray flex rounded-full overflow-hidden mb-3">
+<div class="w-1/3 bg-deep-green h-full"></div>
+<div class="w-1/3 bg-deep-green h-full"></div>
+<div class="w-1/3 bg-border-gray h-full"></div>
+</div>
+<div class="flex items-center justify-between">
+<span class="font-label-md text-label-md text-muted-slate uppercase tracking-wider">Step 2 of 3 — Score your return</span>
+<button data-goto="1" class="font-label-md text-label-md text-muted-slate hover:text-deep-green flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">arrow_back</span>Back</button>
+</div>
+</div>
+<div class="w-full max-w-[640px] bg-pure-white rounded-[16px] border border-border-gray custom-shadow p-8 md:p-12">
+<div class="text-center mb-10">
+<h1 class="font-headline-lg text-headline-lg text-ink-navy mb-4 leading-tight">Already filed this year? Let's check your work.</h1>
+<p class="font-body-md text-body-md text-muted-slate max-w-[480px] mx-auto">Upload the 1040-NR you submitted and we'll score it against our calculation — and show you exactly what you missed.</p>
+</div>
+<div class="relative group cursor-pointer border-2 border-dashed border-border-gray rounded-xl p-12 transition-all duration-300 hover:border-deep-green bg-surface-container-low/30 hover:bg-surface-container-low flex flex-col items-center justify-center" id="drop-zone-2">
+<div class="bg-primary-fixed-dim/20 w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-transform duration-300 group-hover:scale-110">
+<span class="material-symbols-outlined text-deep-green text-3xl">cloud_upload</span>
+</div>
+<p class="font-label-md text-label-md text-on-surface mb-2">Drop your filed 1040-NR (optional)</p>
+<p class="font-body-md text-body-md text-muted-slate mb-6">PDF files only (Max 10MB)</p>
+<button class="bg-white border border-border-gray px-6 py-2.5 rounded-lg font-label-md text-label-md text-deep-green hover:bg-warm-cream transition-colors shadow-sm">Browse Files</button>
+<input accept=".pdf" class="absolute inset-0 opacity-0 cursor-pointer" id="file-input-2" type="file"/>
+</div>
+<div class="hidden mt-6 flex items-center gap-3 p-4 bg-mint-success rounded-lg" id="upload-status-2">
+<span class="material-symbols-outlined text-forest-green" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+<span class="font-label-md text-label-md text-forest-green">1040-NR uploaded</span>
+</div>
+<p class="hidden mt-4 font-label-md text-label-md text-red-600" id="score-error"></p>
+</div>
+<div class="mt-10 flex flex-col items-center gap-4">
+<button id="score-btn" disabled class="bg-deep-green text-white font-headline-md text-headline-md px-10 py-4 rounded-full hover:bg-primary transition-all duration-300 shadow-md flex items-center gap-2 group disabled:opacity-40 disabled:cursor-not-allowed"><span id="score-btn-label">Score my filed return</span><span class="material-symbols-outlined group-hover:translate-x-1 transition-transform" id="score-btn-icon">arrow_forward</span></button>
+<button id="skip-score-btn" data-goto="3" class="font-label-md text-label-md text-deep-green hover:underline py-2">Skip — just show my estimate</button>
+</div>
+<div class="mt-16 mb-12 flex flex-wrap justify-center gap-4">
+<div class="flex items-center gap-2 bg-mint-success px-4 py-2 rounded-full border border-forest-green/10"><span class="material-symbols-outlined text-forest-green text-[20px]">search</span><span class="font-label-md text-label-md text-forest-green">Spot missed deductions</span></div>
+<div class="flex items-center gap-2 bg-mint-success px-4 py-2 rounded-full border border-forest-green/10"><span class="material-symbols-outlined text-forest-green text-[20px]">policy</span><span class="font-label-md text-label-md text-forest-green">Catch treaty benefits</span></div>
+<div class="flex items-center gap-2 bg-mint-success px-4 py-2 rounded-full border border-forest-green/10"><span class="material-symbols-outlined text-forest-green text-[20px]">analytics</span><span class="font-label-md text-label-md text-forest-green">See your accuracy score</span></div>
+</div>
+</section>
+
+<!-- ============ STEP 3 — RESULT ============ -->
+<section data-step="3" hidden class="flex-grow">
+<div class="w-full bg-warm-cream pt-8">
+<div class="max-w-4xl mx-auto px-gutter">
+<div class="flex items-center justify-between mb-2">
+<span class="font-label-md text-label-md text-muted-slate uppercase tracking-wider">Step 3 of 3 — Your result</span>
+<button data-goto="2" class="font-label-md text-label-md text-muted-slate hover:text-deep-green flex items-center gap-1"><span class="material-symbols-outlined text-[18px]">arrow_back</span>Back</button>
+</div>
+<div class="flex gap-2 h-1.5">
+<div class="flex-1 bg-deep-green rounded-full"></div>
+<div class="flex-1 bg-deep-green rounded-full"></div>
+<div class="flex-1 bg-deep-green rounded-full"></div>
+</div>
+</div>
+</div>
+<div class="max-w-4xl mx-auto px-gutter py-section-gap-md space-y-8">
+<!-- Hero result -->
+<section class="bg-pure-white rounded-xl p-8 border border-border-gray custom-shadow">
+<div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+<div>
+<p class="font-label-md text-label-md text-muted-slate mb-1" id="result-label">Estimated refund</p>
+<div class="flex items-center gap-4 flex-wrap">
+<h1 class="font-headline-xl text-headline-xl text-deep-green tabular-nums" id="result-number">+$0</h1>
+<span class="bg-mint-success text-forest-green px-3 py-1 rounded-full font-label-md text-label-md flex items-center gap-1" id="result-badge"><span class="material-symbols-outlined text-[18px]">verified</span>Likely overpaid</span>
+</div>
+<p class="mt-4 font-body-md text-body-md text-on-surface-variant max-w-lg" id="result-subtext">Based on the documents you uploaded. Confirm your details to get your exact figure.</p>
+</div>
+<div class="flex flex-col items-center p-6 bg-surface-container-low rounded-xl min-w-[180px]">
+<div class="relative w-24 h-24 circular-progress rounded-full flex items-center justify-center">
+<div class="text-center"><span class="font-stats-numeric text-stats-numeric text-deep-green" id="findings-count">0</span><span class="text-muted-slate text-xs block">found</span></div>
+</div>
+<p class="mt-3 font-label-md text-label-md text-deep-green">Things we spotted</p>
+<p class="text-xs text-muted-slate mt-1 text-center italic" id="findings-count-note">on the documents you uploaded.</p>
+</div>
+</div>
+</section>
+<!-- ===== Filed-return comparison (only shown when the user scored a 1040-NR) ===== -->
+<section id="comparison-section" hidden class="bg-pure-white rounded-xl border border-border-gray overflow-hidden custom-shadow">
+<div class="p-6 border-b border-border-gray">
+<h2 class="font-headline-md text-headline-md text-deep-green">Your filed return vs. our calculation</h2>
+<p class="font-body-md text-body-md text-muted-slate mt-1">Line by line, here's where your Form 1040-NR matches — and where it doesn't.</p>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse min-w-[560px]">
+<thead>
+<tr class="text-muted-slate font-label-md text-label-md border-b border-border-gray bg-surface-container-low/40">
+<th class="p-4">Line</th>
+<th class="p-4 text-right">You filed</th>
+<th class="p-4 text-right">We calculate</th>
+<th class="p-4 text-right">Difference</th>
+<th class="p-4 w-10"></th>
+</tr>
+</thead>
+<tbody id="comparison-rows"></tbody>
+</table>
+</div>
+<div id="comparison-final" class="p-6 md:p-8 border-t-2 border-deep-green/20 bg-surface-container-low/40"></div>
+</section>
+<!-- Locked breakdown -->
+<section class="bg-pure-white rounded-xl border border-border-gray overflow-hidden custom-shadow">
+<div class="p-6 border-b border-border-gray"><h2 class="font-headline-md text-headline-md text-deep-green">What we found</h2></div>
+<div class="relative">
+<!-- Top finding rendered from the real engine; the rest stay blurred behind
+     the unlock gate. Populated by renderResult(). -->
+<div id="findings-list"></div>
+<div class="p-6 flex items-center justify-between opacity-30 grayscale blur-[2px]"><div class="flex items-center gap-4 w-2/3"><div class="h-8 bg-muted-slate/20 rounded w-48"></div></div><div class="h-6 bg-muted-slate/20 rounded w-20"></div></div>
+<div class="p-6 flex items-center justify-between opacity-20 grayscale blur-[4px]"><div class="flex items-center gap-4 w-2/3"><div class="h-8 bg-muted-slate/20 rounded w-64"></div></div><div class="h-6 bg-muted-slate/20 rounded w-16"></div></div>
+<div class="absolute inset-x-0 bottom-0 top-[88px] flex flex-col items-center justify-end pb-12 bg-gradient-to-t from-pure-white via-pure-white/90 to-transparent">
+<div class="flex flex-col items-center text-center">
+<div class="w-12 h-12 bg-deep-green rounded-full flex items-center justify-center text-pure-white mb-4"><span class="material-symbols-outlined">lock</span></div>
+<p class="font-label-md text-label-md text-muted-slate" id="more-issues">more details hidden</p>
+</div>
+</div>
+</div>
+</section>
+<!-- Conversion band -->
+<section class="bg-deep-green rounded-xl p-8 md:p-12 text-center text-pure-white space-y-6">
+<h2 class="font-headline-lg text-headline-lg">See exactly where you left <span id="conversion-amount">$0</span> on the table.</h2>
+<p class="font-body-lg text-body-lg text-primary-fixed max-w-2xl mx-auto opacity-90">Create a free account to unlock your full breakdown, save your documents, and generate a corrected return.</p>
+<div class="pt-4">
+<button data-goto="4" class="bg-pure-white text-deep-green font-body-md px-10 py-4 rounded-lg font-bold hover:bg-primary-fixed transition-all transform hover:scale-[1.02] active:scale-95 shadow-lg">Unlock my full breakdown →</button>
+<p class="mt-4 text-xs font-label-md opacity-70">Free to see your details. Your uploads are already saved for you.</p>
+</div>
+</section>
+<p class="text-center font-label-md text-label-md text-muted-slate max-w-xl mx-auto leading-relaxed pb-4">Estimates are informational and not tax advice. Final figures require confirming your details.</p>
+</div>
+</section>
+
+<!-- ============ STEP 4 — UNLOCK / SIGNUP ============ -->
+<section data-step="4" hidden class="flex-grow">
+<div class="grid md:grid-cols-2 min-h-[calc(100vh-4rem)]">
+<!-- Left: prize -->
+<div class="bg-warm-cream flex items-center justify-center p-gutter py-16 md:py-gutter order-2 md:order-1">
+<div class="max-w-md w-full space-y-12">
+<div class="bg-pure-white rounded-xl p-10 custom-shadow border border-border-gray text-center">
+<h2 class="font-label-md text-label-md text-muted-slate mb-4 uppercase tracking-wider">Estimated Tax Recovery</h2>
+<div class="font-stats-numeric text-[64px] tabular-nums text-deep-green leading-none font-extrabold mb-2" id="prize-amount">+$0</div>
+<p class="font-body-md text-body-md text-secondary">waiting to be unlocked</p>
+</div>
+<div class="space-y-6 px-4">
+<div class="flex items-start gap-4"><div class="w-8 h-8 rounded-full bg-mint-success flex items-center justify-center flex-shrink-0"><span class="material-symbols-outlined text-forest-green text-[20px]" style="font-variation-settings: 'wght' 700;">check</span></div><div><h3 class="font-body-lg text-body-lg text-ink-navy font-semibold">Full line-by-line breakdown</h3><p class="font-body-md text-body-md text-muted-slate">See exactly where your missing refund is coming from.</p></div></div>
+<div class="flex items-start gap-4"><div class="w-8 h-8 rounded-full bg-mint-success flex items-center justify-center flex-shrink-0"><span class="material-symbols-outlined text-forest-green text-[20px]" style="font-variation-settings: 'wght' 700;">check</span></div><div><h3 class="font-body-lg text-body-lg text-ink-navy font-semibold">Documents saved — no re-uploading</h3><p class="font-body-md text-body-md text-muted-slate">We securely store your 1040 and W-2s for instant filing.</p></div></div>
+<div class="flex items-start gap-4"><div class="w-8 h-8 rounded-full bg-mint-success flex items-center justify-center flex-shrink-0"><span class="material-symbols-outlined text-forest-green text-[20px]" style="font-variation-settings: 'wght' 700;">check</span></div><div><h3 class="font-body-lg text-body-lg text-ink-navy font-semibold">Generate a corrected 1040-X</h3><p class="font-body-md text-body-md text-muted-slate">Amend your previous filing with professional precision.</p></div></div>
+</div>
+</div>
+</div>
+<!-- Right: signup -->
+<div class="bg-pure-white flex items-center justify-center p-gutter py-16 md:py-gutter order-1 md:order-2">
+<div class="max-w-[400px] w-full">
+<div class="mb-8">
+<button data-goto="3" class="font-label-md text-label-md text-muted-slate hover:text-deep-green flex items-center gap-1 mb-6"><span class="material-symbols-outlined text-[18px]">arrow_back</span>Back to results</button>
+<h1 class="font-headline-lg text-headline-lg text-ink-navy mb-2">Create your free account</h1>
+<p class="font-body-md text-body-md text-secondary">Join 40,000+ students reclaiming their taxes.</p>
+</div>
+<div class="space-y-6">
+<a href="/signup" class="w-full flex items-center justify-center gap-3 px-6 py-4 rounded-xl border border-border-gray hover:bg-background transition-colors duration-200 font-label-md text-label-md text-ink-navy">
+<svg height="20" viewBox="0 0 24 24" width="20" xmlns="http://www.w3.org/2000/svg"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"></path><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"></path></svg>
+Continue with Google
+</a>
+<div class="flex items-center gap-4 text-border-gray"><hr class="flex-grow border-t"/><span class="text-label-md font-label-md text-muted-slate">or</span><hr class="flex-grow border-t"/></div>
+<form action="/signup" method="get" class="space-y-4">
+<div class="space-y-2"><label class="block font-label-md text-label-md text-on-surface-variant" for="email">Email</label><input class="w-full px-4 py-3 bg-pure-white border border-border-gray rounded-lg focus:ring-1 focus:ring-deep-green focus:border-deep-green outline-none transition-all placeholder:text-outline-variant font-body-md text-body-md" id="email" name="email" placeholder="name@university.edu" type="email"/></div>
+<div class="space-y-2"><label class="block font-label-md text-label-md text-on-surface-variant" for="password">Password</label><input class="w-full px-4 py-3 bg-pure-white border border-border-gray rounded-lg focus:ring-1 focus:ring-deep-green focus:border-deep-green outline-none transition-all placeholder:text-outline-variant font-body-md text-body-md" id="password" name="password" placeholder="••••••••" type="password"/></div>
+<button type="submit" class="w-full bg-deep-green text-pure-white font-label-md text-label-md py-4 rounded-lg hover:bg-opacity-90 transition-all active:scale-[0.98] custom-shadow">Unlock my breakdown</button>
+</form>
+<div class="flex items-start gap-3"><span class="material-symbols-outlined text-muted-slate text-[18px]">lock</span><p class="font-label-md text-label-md text-muted-slate leading-relaxed">Your documents are encrypted and never sold. We only ask you to confirm details after you've seen your results.</p></div>
+<div class="pt-6 text-center border-t border-border-gray"><p class="font-body-md text-body-md text-secondary">Already have an account? <a class="text-deep-green font-semibold hover:underline decoration-2 underline-offset-4" href="/login">Sign in.</a></p></div>
+</div>
+</div>
+</div>
+</div>
+</section>
+
+</main>
+
+<!-- Shared footer (hidden on the full-height signup step) -->
+<footer id="site-footer" class="bg-warm-cream border-t border-border-gray">
+<div class="flex flex-col md:flex-row justify-between items-center py-8 px-margin-mobile md:px-gutter max-w-container-max mx-auto w-full gap-4">
+<p class="font-label-md text-label-md text-muted-slate">© 2026 TaxBuddy. International student tax compliance simplified.</p>
+<div class="flex flex-wrap justify-center gap-6">
+<a class="font-label-md text-label-md text-muted-slate hover:text-deep-green underline decoration-2 underline-offset-4 transition-colors" href="#">Privacy Policy</a>
+<a class="font-label-md text-label-md text-muted-slate hover:text-deep-green underline decoration-2 underline-offset-4 transition-colors" href="#">Terms of Service</a>
+<a class="font-label-md text-label-md text-muted-slate hover:text-deep-green underline decoration-2 underline-offset-4 transition-colors" href="/contact">Contact</a>
+</div>
+</div>
+</footer>
+
+<script>
+    // ---------- Step navigation ----------
+    const steps = Array.from(document.querySelectorAll('[data-step]'));
+    const footer = document.getElementById('site-footer');
+
+    function goto(n) {
+        steps.forEach(s => {
+            const active = Number(s.dataset.step) === n;
+            s.hidden = !active;
+            if (active) { s.classList.remove('fade-rise-in'); void s.offsetWidth; s.classList.add('fade-rise-in'); }
+        });
+        footer.style.display = (n === 4) ? 'none' : '';
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+        if (n === 3) renderResult();
+    }
+
+    document.querySelectorAll('[data-goto]').forEach(btn => {
+        btn.addEventListener('click', () => goto(Number(btn.dataset.goto)));
+    });
+
+    // ---------- Country dropdown ----------
+    // Full UN member list (mirrors lib/config/countries.ts). Only the 6 treaty
+    // countries actually change the engine's math; the rest fall through to
+    // "no treaty", but everyone gets an option.
+    const COUNTRIES = ["Afghanistan","Albania","Algeria","Andorra","Angola","Antigua and Barbuda","Argentina","Armenia","Australia","Austria","Azerbaijan","Bahamas","Bahrain","Bangladesh","Barbados","Belarus","Belgium","Belize","Benin","Bhutan","Bolivia","Bosnia and Herzegovina","Botswana","Brazil","Brunei","Bulgaria","Burkina Faso","Burundi","Cabo Verde","Cambodia","Cameroon","Canada","Central African Republic","Chad","Chile","China","Colombia","Comoros","Congo (Congo-Brazzaville)","Costa Rica","Croatia","Cuba","Cyprus","Czechia","Democratic Republic of the Congo","Denmark","Djibouti","Dominica","Dominican Republic","Ecuador","Egypt","El Salvador","Equatorial Guinea","Eritrea","Estonia","Eswatini","Ethiopia","Fiji","Finland","France","Gabon","Gambia","Georgia","Germany","Ghana","Greece","Grenada","Guatemala","Guinea","Guinea-Bissau","Guyana","Haiti","Honduras","Hong Kong","Hungary","Iceland","India","Indonesia","Iran","Iraq","Ireland","Israel","Italy","Ivory Coast","Jamaica","Japan","Jordan","Kazakhstan","Kenya","Kiribati","Kosovo","Kuwait","Kyrgyzstan","Laos","Latvia","Lebanon","Lesotho","Liberia","Libya","Liechtenstein","Lithuania","Luxembourg","Macau","Madagascar","Malawi","Malaysia","Maldives","Mali","Malta","Marshall Islands","Mauritania","Mauritius","Mexico","Micronesia","Moldova","Monaco","Mongolia","Montenegro","Morocco","Mozambique","Myanmar","Namibia","Nauru","Nepal","Netherlands","New Zealand","Nicaragua","Niger","Nigeria","North Korea","North Macedonia","Norway","Oman","Pakistan","Palau","Palestine","Panama","Papua New Guinea","Paraguay","Peru","Philippines","Poland","Portugal","Qatar","Romania","Russia","Rwanda","Saint Kitts and Nevis","Saint Lucia","Saint Vincent and the Grenadines","Samoa","San Marino","Sao Tome and Principe","Saudi Arabia","Senegal","Serbia","Seychelles","Sierra Leone","Singapore","Slovakia","Slovenia","Solomon Islands","Somalia","South Africa","South Korea","South Sudan","Spain","Sri Lanka","Sudan","Suriname","Sweden","Switzerland","Syria","Taiwan","Tajikistan","Tanzania","Thailand","Timor-Leste","Togo","Tonga","Trinidad and Tobago","Tunisia","Turkey","Turkmenistan","Tuvalu","Uganda","Ukraine","United Arab Emirates","United Kingdom","United States","Uruguay","Uzbekistan","Vanuatu","Vatican City","Venezuela","Vietnam","Yemen","Zambia","Zimbabwe"];
+    const countrySelect = document.getElementById('country');
+    for (const name of COUNTRIES) {
+        const opt = document.createElement('option');
+        opt.value = name; opt.textContent = name;
+        countrySelect.appendChild(opt);
+    }
+    // Re-collecting country after an estimate was already computed invalidates it.
+    countrySelect.addEventListener('change', () => { estimateData = null; estimatePromise = null; });
+
+    // ---------- Upload + extraction state ----------
+    // Extracted income docs, in the exact shape /api/check/estimate (and the
+    // engine behind it) expects. Multiple W-2s / 1099s just append.
+    const state = { w2s: [], f1042s: [], f1099ints: [], f1099divs: [], f1099bs: [], f1099das: [] };
+    const fileRows = new Map(); // id -> { el, statusEl, iconEl, added: [[arrName, obj], ...] }
+    let fileSeq = 0;
+    let processingCount = 0;
+    // In-flight + settled upload promises. The estimate/score run in the
+    // background as soon as the user hits "Next", but they must wait for every
+    // upload to finish extracting before they read `state`.
+    const uploadJobs = [];
+    const processingFiles = new Map(); // id -> filename, for the "Processing document …" step-3 message
+    let estimatePromise = null;
+    let estimateData = null;
+    // Step 2 (optional) — score the filer's already-filed 1040-NR.
+    let filedReturnFile = null;
+    let scorePromise = null;
+    let scoreData = null;
+
+    const fileListEl = document.getElementById('file-list');
+    const estimateBtn = document.getElementById('estimate-btn');
+    const estimateHint = document.getElementById('estimate-hint');
+
+    function docCount() {
+        return state.w2s.length + state.f1042s.length + state.f1099ints.length +
+               state.f1099divs.length + state.f1099bs.length + state.f1099das.length;
+    }
+
+    function hasType(t) {
+        if (t === 'w2') return state.w2s.length > 0;
+        if (t === 'f1042s') return state.f1042s.length > 0;
+        if (t === 'f1099') return state.f1099ints.length + state.f1099divs.length + state.f1099bs.length + state.f1099das.length > 0;
+        return false;
+    }
+
+    // Chips flip grey → green when a matching document has been read.
+    function refreshChips() {
+        document.querySelectorAll('[data-chip]').forEach(chip => {
+            const on = hasType(chip.dataset.chip);
+            chip.classList.toggle('bg-mint-success', on);
+            chip.classList.toggle('border-forest-green', on);
+            chip.classList.toggle('text-forest-green', on);
+            chip.classList.toggle('bg-surface-container-low', !on);
+            chip.classList.toggle('border-border-gray', !on);
+            chip.classList.toggle('text-muted-slate', !on);
+            chip.querySelector('[data-chip-check]').classList.toggle('hidden', !on);
+        });
+    }
+
+    // Name of a document still being read (for the step-3 processing message).
+    function currentProcessingName() {
+        const it = processingFiles.values().next();
+        return it.done ? null : it.value;
+    }
+
+    function refreshEstimateButton() {
+        // Enabled the moment anything is uploaded — the button no longer waits
+        // for extraction to finish; reading continues in the background.
+        const ready = docCount() > 0 || processingCount > 0;
+        estimateBtn.disabled = !ready;
+        if (processingCount > 0) estimateHint.textContent = 'Reading your document' + (processingCount > 1 ? 's' : '') + '… you can continue — we\'ll finish in the background.';
+        else if (docCount() === 0) estimateHint.textContent = 'Upload at least one document to get your estimate.';
+        else estimateHint.textContent = 'Estimate only — confirm details later for your exact figure.';
+    }
+
+    // ---------- Per-file status rows ----------
+    function addFileRow(id, name) {
+        fileListEl.classList.remove('hidden');
+        const el = document.createElement('div');
+        el.className = 'flex items-center gap-3 p-3 rounded-lg bg-surface-container-low/60 border border-border-gray';
+        el.innerHTML =
+            '<span class="material-symbols-outlined text-[20px] text-muted-slate animate-spin" data-icon>progress_activity</span>' +
+            '<div class="min-w-0 flex-1"><p class="font-label-md text-label-md text-on-surface truncate">' + escapeHtml(name) + '</p>' +
+            '<p class="font-body-md text-xs text-muted-slate" data-status>Reading…</p></div>' +
+            '<button class="text-muted-slate hover:text-deep-green shrink-0" data-remove aria-label="Remove"><span class="material-symbols-outlined text-[20px]">close</span></button>';
+        fileListEl.appendChild(el);
+        const info = { el, statusEl: el.querySelector('[data-status]'), iconEl: el.querySelector('[data-icon]'), added: [] };
+        el.querySelector('[data-remove]').addEventListener('click', () => removeRow(id));
+        fileRows.set(id, info);
+        return info;
+    }
+
+    function setFileRow(info, kind, text) {
+        info.statusEl.textContent = text;
+        const icon = info.iconEl;
+        icon.classList.remove('animate-spin', 'text-muted-slate', 'text-forest-green', 'text-red-500');
+        icon.style.fontVariationSettings = "'FILL' 1";
+        if (kind === 'ok') { icon.textContent = 'check_circle'; icon.classList.add('text-forest-green'); }
+        else { icon.textContent = 'error'; icon.classList.add('text-red-500'); }
+    }
+
+    function removeRow(id) {
+        const info = fileRows.get(id);
+        if (!info) return;
+        info.added.forEach(([arrName, obj]) => {
+            const arr = state[arrName];
+            const i = arr.indexOf(obj);
+            if (i >= 0) arr.splice(i, 1);
+        });
+        info.el.remove();
+        fileRows.delete(id);
+        if (fileRows.size === 0) fileListEl.classList.add('hidden');
+        estimateData = null; estimatePromise = null; // stale once inputs change
+        refreshChips();
+        refreshEstimateButton();
+    }
+
+    // ---------- Upload pipeline ----------
+    async function uploadOne(file) {
+        const id = ++fileSeq;
+        const info = addFileRow(id, file.name);
+        processingCount++;
+        processingFiles.set(id, file.name);
+        refreshEstimateButton();
+        estimateData = null; estimatePromise = null; // inputs changing
+        try {
+            const form = new FormData();
+            form.append('file', file);
+            const res = await fetch('/api/check/extract', { method: 'POST', body: form });
+            const data = await res.json();
+            if (!fileRows.has(id)) return; // removed mid-flight
+            if (!res.ok) { setFileRow(info, 'error', data.error || 'Could not read this file.'); return; }
+            applyExtraction(data, info);
+        } catch (e) {
+            if (fileRows.has(id)) setFileRow(info, 'error', 'Network error — try again.');
+        } finally {
+            processingCount--;
+            processingFiles.delete(id);
+            refreshEstimateButton();
+        }
+    }
+
+    function applyExtraction(data, info) {
+        const add = (arrName, obj) => { state[arrName].push(obj); info.added.push([arrName, obj]); };
+        if (data.docType === 'w2') {
+            add('w2s', data.data);
+            setFileRow(info, 'ok', 'W-2 · wages read');
+        } else if (data.docType === 'f1042s') {
+            add('f1042s', data.data);
+            setFileRow(info, 'ok', '1042-S · scholarship read');
+        } else if (data.docType === 'f1099') {
+            const s = data.sections, found = [];
+            if (s.int) { add('f1099ints', s.int); found.push('interest'); }
+            if (s.div) { add('f1099divs', s.div); found.push('dividends'); }
+            if (s.b) { add('f1099bs', s.b); found.push('broker'); }
+            if (s.da) { add('f1099das', s.da); found.push('digital assets'); }
+            setFileRow(info, 'ok', '1099 · ' + found.join(', '));
+        } else {
+            setFileRow(info, 'error', "Couldn't recognize this as a W-2, 1042-S, or 1099.");
+            return;
+        }
+        refreshChips();
+    }
+
+    // ---------- Dropzone wiring ----------
+    const dz = document.getElementById('dropzone');
+    const fileInput = document.getElementById('file-input');
+    ['dragenter', 'dragover'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.add('dropzone-active'); }));
+    ['dragleave', 'drop'].forEach(e => dz.addEventListener(e, ev => { ev.preventDefault(); dz.classList.remove('dropzone-active'); }));
+    dz.addEventListener('drop', ev => { for (const f of ev.dataTransfer.files) uploadJobs.push(uploadOne(f)); });
+    fileInput.addEventListener('change', ev => { for (const f of ev.target.files) uploadJobs.push(uploadOne(f)); ev.target.value = ''; });
+
+    // ---------- Estimate ----------
+    function runEstimate() {
+        estimateData = null;
+        // Wait for any still-reading uploads before snapshotting `state`, then
+        // compute. The user has already advanced; this all runs in the background.
+        estimatePromise = Promise.allSettled(uploadJobs)
+            .then(() => fetch('/api/check/estimate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ country: countrySelect.value, ...state }),
+            }))
+            .then(r => { if (!r.ok) throw new Error('estimate failed'); return r.json(); })
+            .then(d => { estimateData = d; return d; });
+        return estimatePromise;
+    }
+
+    estimateBtn.addEventListener('click', () => {
+        if (docCount() === 0 && processingCount === 0) return;
+        runEstimate().catch(() => {});
+        goto(2); // optional "already filed?" step; the number lands on step 3
+    });
+
+    // ---------- Result rendering ----------
+    const KIND_LABELS = {
+        fica: 'FICA over-withheld', scholarship: 'Taxable scholarship', treaty: 'Treaty benefit',
+        exempt_interest: 'Exempt interest', completeness: 'Income summary', capital_gains_183: 'Capital gains',
+        dividend_nec: 'Dividends (NEC)', state_crosscheck: 'State check',
+    };
+
+    function fmtUsd(n) { return '$' + Math.round(Math.abs(n)).toLocaleString(); }
+    function signedMoney(n) { const r = Math.round(n); return (r < 0 ? '−$' : '+$') + Math.abs(r).toLocaleString(); }
+    function escapeHtml(s) { return String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c])); }
+
+    function animateNumber(el, target, prefix) {
+        const duration = 1200; let startTime = null;
+        function tick(t) {
+            if (!startTime) startTime = t;
+            const p = Math.min((t - startTime) / duration, 1);
+            el.textContent = prefix + Math.floor(p * target).toLocaleString();
+            if (p < 1) requestAnimationFrame(tick); else el.textContent = prefix + Math.round(target).toLocaleString();
+        }
+        requestAnimationFrame(tick);
+    }
+
+    function renderFindings(findings) {
+        document.getElementById('findings-count').textContent = findings.length;
+        document.getElementById('findings-count-note').textContent =
+            (findings.length === 1 ? 'thing' : 'things') + ' on the documents you uploaded.';
+        const list = document.getElementById('findings-list');
+        list.innerHTML = '';
+        const top = findings.slice(0, 1); // the rest stay behind the unlock gate
+        if (top.length === 0) {
+            list.innerHTML = '<div class="p-6 font-body-md text-body-md text-muted-slate">Nothing flagged on what you uploaded.</div>';
+        } else {
+            top.forEach(f => {
+                const amt = f.amountUsd != null ? 'est. ' + fmtUsd(f.amountUsd) : '';
+                const row = document.createElement('div');
+                row.className = 'flex items-center justify-between p-6 gap-3';
+                row.innerHTML =
+                    '<div class="flex items-center gap-3 min-w-0">' +
+                    '<span class="bg-mint-success text-forest-green px-3 py-1 rounded-full font-label-md text-label-md whitespace-nowrap">' + escapeHtml(KIND_LABELS[f.kind] || 'Finding') + '</span>' +
+                    '<span class="font-body-md text-body-md text-on-surface truncate">' + escapeHtml(f.headline) + '</span></div>' +
+                    '<span class="font-stats-numeric text-deep-green whitespace-nowrap">' + amt + '</span>';
+                list.appendChild(row);
+            });
+        }
+        const more = Math.max(findings.length - 1, 0);
+        document.getElementById('more-issues').textContent =
+            more > 0 ? more + ' more ' + (more === 1 ? 'detail' : 'details') + ' hidden' : 'Full breakdown hidden';
+    }
+
+    // Live "Processing document …" state shown in the hero while extraction and
+    // the estimate finish in the background. Named after whichever doc is still
+    // being read; falls back to a generic "crunching the numbers" once reads are done.
+    let processingTimer = null;
+    function startResultProcessing() {
+        const numEl = document.getElementById('result-number');
+        const badge = document.getElementById('result-badge');
+        badge.style.display = 'none';
+        numEl.classList.remove('text-deep-green');
+        numEl.classList.add('text-ink-navy');
+        document.getElementById('result-label').textContent = 'Crunching the numbers';
+        const tick = () => {
+            numEl.innerHTML = '<span class="material-symbols-outlined animate-spin align-middle" style="font-size:44px;font-variation-settings:\'wght\' 500;">progress_activity</span>';
+            const name = currentProcessingName();
+            document.getElementById('result-subtext').textContent = name
+                ? 'Processing document ' + name + '…'
+                : 'Calculating your estimated refund…';
+        };
+        tick();
+        processingTimer = setInterval(tick, 400);
+    }
+    function stopResultProcessing() {
+        if (processingTimer) { clearInterval(processingTimer); processingTimer = null; }
+    }
+
+    async function renderResult() {
+        const numEl = document.getElementById('result-number');
+        let d = estimateData;
+        if (!d && estimatePromise) {
+            startResultProcessing();
+            try { d = await estimatePromise; } catch (e) { d = null; }
+            stopResultProcessing();
+        }
+        if (!d) { numEl.textContent = '—'; document.getElementById('result-label').textContent = 'Estimated refund'; document.getElementById('result-subtext').textContent = 'We couldn’t compute your estimate — go back and re-upload your documents.'; return; }
+
+        const refund = d.refundOrDue;
+        const isRefund = refund >= 0;
+        numEl.classList.toggle('text-deep-green', isRefund);
+        numEl.classList.toggle('text-ink-navy', !isRefund);
+        animateNumber(numEl, Math.abs(refund), isRefund ? '+$' : '$');
+
+        document.getElementById('result-label').textContent = isRefund ? 'Estimated refund' : 'Estimated amount you owe';
+        document.getElementById('result-badge').style.display = (isRefund && refund > 0) ? '' : 'none';
+        document.getElementById('result-subtext').textContent = isRefund
+            ? 'Estimated overpayment based on the documents you uploaded. Confirm your details to get your exact figure.'
+            : 'Based on the documents you uploaded, you may owe rather than be owed. Confirm your details to get your exact figure.';
+
+        renderFindings(d.findings || []);
+        const bandAmt = (isRefund ? '+$' : '$') + Math.round(Math.abs(refund)).toLocaleString();
+        document.getElementById('conversion-amount').textContent = bandAmt;
+        document.getElementById('prize-amount').textContent = bandAmt;
+        await renderComparison();
+    }
+
+    // Filed-return comparison: only rendered when the user scored a 1040-NR.
+    async function renderComparison() {
+        const section = document.getElementById('comparison-section');
+        if (!scoreData && scorePromise) {
+            // Reveal the section with a loading row while the score finishes in the background.
+            section.hidden = false;
+            document.getElementById('comparison-rows').innerHTML =
+                '<tr><td colspan="5" class="p-8 text-center text-muted-slate font-body-md text-body-md">' +
+                '<span class="material-symbols-outlined animate-spin align-middle mr-2">progress_activity</span>' +
+                'Scoring your filed return…</td></tr>';
+            document.getElementById('comparison-final').innerHTML = '';
+            try { await scorePromise; } catch (e) { section.hidden = true; return; }
+        }
+        if (!scoreData) { section.hidden = true; return; }
+
+        const s = scoreData.score;
+        const tbody = document.getElementById('comparison-rows');
+        tbody.innerHTML = '';
+        // Tease, don't give away: reveal the first couple of mismatched lines in full
+        // so they see the tool works, then blur the correct value + difference on the
+        // rest. Color still signals whether each blurred line is in their favor or not.
+        const MAX_REVEAL = 2;
+        let revealed = 0;
+        s.lines.forEach(l => {
+            const reveal = l.match || revealed < MAX_REVEAL;
+            if (!l.match && reveal) revealed++;
+            const tr = document.createElement('tr');
+            tr.className = 'border-b border-border-gray ' + (l.match ? '' : 'bg-red-50/60');
+            const filed = l.filed == null ? '<span class="text-muted-slate">—</span>' : fmtUsd(l.filed);
+            const colorCls = l.delta >= 0 ? 'text-forest-green' : 'text-red-600';
+            const diff = l.match ? '<span class="text-muted-slate">—</span>'
+                : reveal ? '<span class="font-semibold ' + colorCls + '">' + signedMoney(l.delta) + '</span>'
+                : '<span class="font-semibold ' + colorCls + ' blur-[5px] select-none" aria-hidden="true">' + signedMoney(l.delta) + '</span>';
+            const correct = reveal
+                ? fmtUsd(l.correct)
+                : '<span class="blur-[5px] select-none text-on-surface" aria-hidden="true">' + fmtUsd(l.correct) + '</span>';
+            const icon = l.match
+                ? '<span class="material-symbols-outlined text-[20px] text-forest-green" style="font-variation-settings:\'FILL\' 1;">check_circle</span>'
+                : '<span class="material-symbols-outlined text-[20px] text-red-500" style="font-variation-settings:\'FILL\' 1;">error</span>';
+            tr.innerHTML =
+                '<td class="p-4 font-body-md text-body-md text-on-surface">' + escapeHtml(l.label) + '</td>' +
+                '<td class="p-4 text-right tabular-nums text-on-surface-variant">' + filed + '</td>' +
+                '<td class="p-4 text-right tabular-nums font-semibold text-on-surface">' + correct + '</td>' +
+                '<td class="p-4 text-right tabular-nums">' + diff + '</td>' +
+                '<td class="p-4 text-center">' + icon + '</td>';
+            tbody.appendChild(tr);
+        });
+
+        // Bottom line — the "final value" comparison.
+        const f = s.final;
+        const filedStr = f.filedRefundOrDue == null ? 'no bottom line entered'
+            : (f.filedRefundOrDue >= 0 ? 'a ' + fmtUsd(f.filedRefundOrDue) + ' refund' : fmtUsd(f.filedRefundOrDue) + ' owed');
+        // Blur the corrected bottom line + the net delta — keep the color so they know
+        // whether it's good or bad news, but not the number. That's the hook.
+        const blurMoney = (v, cls) => '<span class="font-semibold ' + cls + ' blur-[6px] select-none" aria-hidden="true">' + fmtUsd(v) + '</span>';
+        const correctStr = f.correctRefundOrDue >= 0
+            ? "you're owed " + blurMoney(f.correctRefundOrDue, 'text-deep-green')
+            : 'you owe ' + blurMoney(f.correctRefundOrDue, 'text-deep-green');
+        let verdict;
+        if (f.match) verdict = '<span class="text-forest-green font-semibold">Your bottom line matches ours.</span>';
+        else if (f.delta > 0) verdict = 'That\'s ' + blurMoney(f.delta, 'text-forest-green') + ' <span class="text-forest-green font-semibold">more in your pocket</span> than you claimed.';
+        else verdict = 'That\'s ' + blurMoney(f.delta, 'text-red-600') + ' <span class="text-red-600 font-semibold">worse</span> than you claimed — you may have under-paid.';
+
+        document.getElementById('comparison-final').innerHTML =
+            '<p class="font-label-md text-label-md text-muted-slate uppercase tracking-wider mb-2">Bottom line</p>' +
+            '<p class="font-body-lg text-body-lg text-on-surface">You filed for <span class="font-semibold">' + filedStr +
+            '</span>. We calculate <span class="font-semibold text-on-surface">' + correctStr + '</span>.</p>' +
+            '<p class="font-body-md text-body-md text-on-surface-variant mt-2">' + verdict + '</p>' +
+            '<p class="font-label-md text-label-md text-muted-slate mt-3">' + s.matchedCount + ' of ' + s.totalCount +
+            ' lines match (' + s.accuracyPct + '% accuracy). Estimate only — confirm your details for the exact figures.</p>';
+
+        section.hidden = false;
+    }
+
+    // ---------- Step 2 — score the filer's already-filed 1040-NR ----------
+    const fi2 = document.getElementById('file-input-2');
+    const dz2 = document.getElementById('drop-zone-2');
+    const st2 = document.getElementById('upload-status-2');
+    const scoreBtn = document.getElementById('score-btn');
+    const scoreBtnLabel = document.getElementById('score-btn-label');
+    const scoreError = document.getElementById('score-error');
+
+    fi2.addEventListener('change', e => {
+        const file = e.target.files[0];
+        if (!file) return;
+        filedReturnFile = file;
+        scoreData = null; scorePromise = null; // a new return invalidates any prior score
+        dz2.classList.add('border-forest-green');
+        st2.classList.remove('hidden');
+        st2.querySelector('.text-forest-green.font-label-md').textContent = file.name + ' uploaded';
+        scoreError.classList.add('hidden');
+        scoreBtn.disabled = false;
+    });
+
+    // POST the filed 1040-NR plus the Step-1 income docs; the server extracts
+    // the filer's line values, reruns the engine on the docs, and diffs them.
+    function runScore() {
+        if (!filedReturnFile) return Promise.reject(new Error('no file'));
+        const file = filedReturnFile;
+        scoreData = null;
+        // Wait for the Step-1 uploads to finish reading before snapshotting
+        // `state` into the payload, then score — all in the background.
+        scorePromise = Promise.allSettled(uploadJobs)
+            .then(() => {
+                const form = new FormData();
+                form.append('file', file);
+                form.append('payload', JSON.stringify({ country: countrySelect.value, ...state }));
+                return fetch('/api/check/score', { method: 'POST', body: form });
+            })
+            .then(async r => {
+                const d = await r.json();
+                if (!r.ok) throw new Error(d.error || 'Could not score this return.');
+                return d;
+            })
+            .then(d => { scoreData = d; return d; });
+        return scorePromise;
+    }
+
+    scoreBtn.addEventListener('click', () => {
+        if (!filedReturnFile) return;
+        scoreError.classList.add('hidden');
+        // The estimate was kicked off when leaving Step 1; make sure it's running
+        // (the comparison payload and the Step-3 hero both need it).
+        if (!estimateData && !estimatePromise) runEstimate().catch(() => {});
+        // Kick off scoring in the background and advance immediately — Step 3
+        // shows a "Scoring your filed return…" state until it lands.
+        runScore().catch(() => {});
+        goto(3);
+    });
+
+    // "Skip" navigates to Step 3 (via data-goto) — just make sure no stale score shows.
+    document.getElementById('skip-score-btn').addEventListener('click', () => {
+        scoreData = null; scorePromise = null;
+    });
+
+    refreshEstimateButton();
+</script>
+</body></html>
