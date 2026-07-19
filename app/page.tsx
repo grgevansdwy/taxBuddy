@@ -102,40 +102,19 @@ export default function LandingPage() {
               Watch demo
             </a>
           </div>
-          {/* Tilted, layered product screenshots (front panel + one peeking behind). */}
-          <div className="relative w-full max-w-5xl mx-auto mt-2 md:mt-6 [perspective:1200px]">
-            {/* Decorative gradient blur behind the panels */}
-            <div className="absolute inset-0 bg-primary-fixed/20 blur-[110px] rounded-full z-0 translate-y-10 scale-110" />
-            {/* The tilted 3D stack is desktop-only — at phone widths the panels
-                shrink past legibility, so we show the front one flat instead. */}
-            <div className="relative z-10 md:[transform-style:preserve-3d] md:[transform:rotateX(7deg)_rotateY(-16deg)_rotateZ(-3deg)]">
-              {/* Back window — the filing dashboard, same size as the front
-                  panel but pushed back in Z and offset down-left, so only its
-                  left edge peeks out. */}
-              <div
-                className="hidden md:block absolute -left-[14%] bottom-[8%] w-[72%] aspect-[1.95] rounded-2xl overflow-hidden border border-border-gray shadow-[0_0_24px_rgba(26,26,46,0.08),0_6px_18px_-6px_rgba(26,26,46,0.12)]"
-                style={{ transform: "translateZ(-380px)" }}
-              >
-                <Image
-                  alt=""
-                  aria-hidden
-                  className="w-full h-full object-cover object-left-top"
-                  src="/hero-dashboard.png"
-                  width={2400}
-                  height={1207}
-                />
-              </div>
-              {/* Front window — the finished return, shifted right */}
-              <div className="relative w-full md:ml-[28%] md:w-[72%] aspect-[1.95] rounded-2xl overflow-hidden border border-border-gray shadow-[0_0_30px_rgba(26,26,46,0.10),0_8px_24px_-6px_rgba(26,26,46,0.16)]">
-                <Image
-                  alt="TaxBuddy — your completed 1040-NR ready to download"
-                  className="w-full h-full object-cover object-top"
-                  src="/hero-return-ready.png"
-                  width={2762}
-                  height={1488}
-                  priority
-                />
-              </div>
+          {/* Product mockup. The photo carries its own perspective, so no CSS
+              tilt is layered on top; it renders flat at its natural aspect. */}
+          <div className="relative w-full max-w-5xl mx-auto mt-2 md:mt-6">
+            <div className="rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(26,26,46,0.10),0_8px_24px_-6px_rgba(26,26,46,0.16)]">
+              <Image
+                alt="TaxBuddy open on a tablet, showing a completed 1040-NR ready to download"
+                className="w-full h-auto"
+                src="/hero_image.png"
+                width={1744}
+                height={1222}
+                sizes="(max-width: 1024px) 100vw, 1024px"
+                priority
+              />
             </div>
           </div>
         </section>
