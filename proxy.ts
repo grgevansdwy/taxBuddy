@@ -26,8 +26,14 @@ export default async function proxy(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   const pathname = request.nextUrl.pathname
 
-  // Root route ("/") is the marketing landing page (app/page.tsx) — served to
-  // everyone, signed-in or not. No rewrite needed; the app route handles it.
+  // Root route ("/") is the marketing landing page (app/page.tsx). Signed-out
+  // visitors see it; signed-in users are sent straight to their dashboard so
+  // reopening the site lands them back in the app instead of the marketing page.
+  if (user && pathname === '/') {
+    const url = request.nextUrl.clone()
+    url.pathname = '/dashboard'
+    return NextResponse.redirect(url)
+  }
 
   // Free "Refund Check" pre-signup funnel — a static no-auth flow. Rewrite the
   // clean "/check" URL to the static page in public/.

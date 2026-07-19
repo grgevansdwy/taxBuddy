@@ -192,7 +192,7 @@ export default function LandingPage() {
 
         {/* Section F (Founders Backstory) */}
         <section
-          className="site-container min-h-screen flex flex-col items-center justify-center py-section-gap-lg text-center"
+          className="site-container flex flex-col items-center justify-center py-[64px] text-center"
           id="about"
         >
           <div className="max-w-3xl mx-auto">
