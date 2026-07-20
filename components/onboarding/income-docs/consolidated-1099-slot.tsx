@@ -60,6 +60,7 @@ export function Consolidated1099Slot({
   const [divs, setDivs] = useState<F1099DIVData[]>(initialDivs);
   const [bs, setBs] = useState<F1099BData[]>(initialBs);
   const [das, setDas] = useState<F1099DAData[]>(initialDas);
+  const [names, setNames] = useState<string[]>([]);
   const [phase, setPhase] = useState<Phase>("upload");
   const [error, setError] = useState<string | null>(null);
   const [lastFound, setLastFound] = useState<string[] | null>(null);
@@ -162,6 +163,7 @@ export function Consolidated1099Slot({
       setBs(nextBs);
       setDas(nextDas);
       setLastFound(found);
+      setNames((prev) => [...prev, file.name]);
       setPhase("upload");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -181,17 +183,16 @@ export function Consolidated1099Slot({
 
   return (
     <div className="space-y-1.5">
-      {totalCount > 0 && (
-        <p className="text-xs text-muted-foreground">
-          On file: {summary} document{totalCount === 1 ? "" : "s"} confirmed.
-        </p>
-      )}
       <FileDropSlot
         label={totalCount > 0 ? "Add another 1099" : "1099 (Interest / Dividends / Broker / Digital Assets)"}
-        description={phase === "processing" ? "Reading your document..." : undefined}
-        file={null}
+        fileNames={names}
         onChange={handleFile}
       />
+      {names.length === 0 && totalCount > 0 && (
+        <p className="text-xs text-muted-foreground">
+          On file: {summary} document{totalCount === 1 ? "" : "s"}.
+        </p>
+      )}
       {lastFound && (
         <p className="text-xs text-foreground">Found and saved: {lastFound.join(", ")}.</p>
       )}

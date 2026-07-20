@@ -11,6 +11,12 @@ export const I20ExtractionSchema = z.object({
   schoolName: z.string(),
   dsoName: z.string(), // Designated School Official who signed the I-20
   dsoAddress: z.string(), // international student office address, printed as "School Address"
+  // "Earliest Admission Date" printed on the I-20 (ISO yyyy-mm-dd), or "" if not
+  // printed. This anchors the F-1 five-year exempt-individual count: the first
+  // US entry on/after this date is the first entry *as an F-1 student*, which is
+  // what matters for residency — not an earlier tourist/other-visa entry. See
+  // lib/rules/eligibility.ts (computeFirstF1EntryDate).
+  earliestAdmissionDate: z.string(),
   confidence: z.number().min(0).max(1),
 });
 

@@ -58,7 +58,9 @@ export async function POST(request: Request) {
     {
       user_id: user.id,
       tax_year: taxYear,
-      stage: "documents",
+      // Interview is the last step and files right after this save, so keep the
+      // resume stage on "interview" (a failed file leaves them here to retry).
+      stage: "interview",
       // The whole interview form saves together here, charitable contributions
       // included — merge (not replace) so unrelated keys already on the row
       // survive. charitableContributionsConfirmed stays true for the filing

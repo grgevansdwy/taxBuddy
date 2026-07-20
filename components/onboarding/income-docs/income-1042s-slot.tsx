@@ -21,6 +21,7 @@ export function Income1042SSlot({
   onProcessingChange?: (processing: boolean) => void;
 }) {
   const [items, setItems] = useState<F1042SData[]>(initialValue);
+  const [names, setNames] = useState<string[]>([]);
   const [phase, setPhase] = useState<Phase>("upload");
   const [error, setError] = useState<string | null>(null);
 
@@ -75,6 +76,7 @@ export function Income1042SSlot({
       if (!saveRes.ok) throw new Error("Couldn't save this document.");
 
       setItems(nextItems);
+      setNames((prev) => [...prev, file.name]);
       setPhase("upload");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -84,17 +86,16 @@ export function Income1042SSlot({
 
   return (
     <div className="space-y-1.5">
-      {items.length > 0 && (
-        <p className="text-xs text-muted-foreground">
-          {items.length} 1042-S document{items.length === 1 ? "" : "s"} on file, confirmed.
-        </p>
-      )}
       <FileDropSlot
         label={items.length > 0 ? "Add another 1042-S" : "1042-S"}
-        description={phase === "processing" ? "Reading your document..." : undefined}
-        file={null}
+        fileNames={names}
         onChange={handleFile}
       />
+      {names.length === 0 && items.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {items.length} 1042-S document{items.length === 1 ? "" : "s"} on file.
+        </p>
+      )}
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );

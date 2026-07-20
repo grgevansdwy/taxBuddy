@@ -6,19 +6,23 @@ import { cn } from "@/lib/utils";
 
 export function FileDropSlot({
   label,
-  description,
   accept = "application/pdf",
   file,
+  fileNames,
   onChange,
 }: {
   label: string;
-  description?: string;
   accept?: string;
-  file: File | null;
+  // A single selected file (I-94/I-20/travel history keep the File in state),
+  // OR an explicit list of uploaded file names (income slots that hold several).
+  file?: File | null;
+  fileNames?: string[];
   onChange: (file: File | null) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
+
+  const names = fileNames ?? (file ? [file.name] : []);
 
   return (
     <div
@@ -52,11 +56,14 @@ export function FileDropSlot({
         onChange={(e) => onChange(e.target.files?.[0] ?? null)}
       />
       <span className="text-sm font-medium text-foreground">{label}</span>
-      {description && <span className="text-xs text-muted-foreground">{description}</span>}
-      {file ? (
-        <Badge variant="secondary" className="mt-2">
-          {file.name}
-        </Badge>
+      {names.length > 0 ? (
+        <div className="mt-2 flex flex-wrap justify-center gap-1.5">
+          {names.map((name, i) => (
+            <Badge key={`${name}-${i}`} variant="secondary">
+              {name}
+            </Badge>
+          ))}
+        </div>
       ) : (
         <span className="mt-2 text-xs text-muted-foreground">Click or drag a PDF here</span>
       )}

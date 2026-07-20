@@ -72,7 +72,7 @@ export async function POST(request: Request) {
     {
       user_id: user.id,
       tax_year: body.taxYear,
-      stage: result.passed ? "profile" : "blocked",
+      stage: result.passed ? "interview" : "blocked",
       eligibility_page: eligibilityPage,
       profile_page: {
         ...(existing?.profile_page ?? {}),

@@ -14,12 +14,11 @@ import {
 } from "@/components/ui/select";
 import { WizardShell } from "@/components/onboarding/wizard-shell";
 import { WizardNavRow } from "@/components/onboarding/wizard-nav-row";
-import { I20Slot } from "@/components/onboarding/i20-slot";
 import { CURRENT_SUPPORTED_TAX_YEAR } from "@/lib/config/taxYear";
 import { US_STATES } from "@/lib/config/usStates";
 import { COUNTRIES } from "@/lib/config/countries";
 import { fetchFiling } from "@/lib/client/fetchFiling";
-import type { Address, FilingStatus, ForeignAddress, SchoolInfo } from "@/lib/types";
+import type { Address, FilingStatus, ForeignAddress } from "@/lib/types";
 
 type YesNo = "yes" | "no";
 // "" = not yet answered; we no longer pre-select a default so the user has to
@@ -86,13 +85,6 @@ export default function ProfilePage() {
 
   const [filingStatus, setFilingStatus] = useState<FilingStatus>("single");
 
-  // The I-20 is requested for every F-1 filer regardless of any answer, and its
-  // extraction is the slowest (a GPT read plus a web search for school/DSO
-  // details). Surfacing it here — the first step where nothing depends on it —
-  // lets it upload and parse in the background across the rest of onboarding, so
-  // it's already "on file, confirmed" by the time the user reaches Documents.
-  const [school, setSchool] = useState<SchoolInfo | null>(null);
-
   const [hasSSN, setHasSSN] = useState<YesNoUnset>("");
   const [hasOrAppliedItin, setHasOrAppliedItin] = useState<YesNoUnset>("");
   const [ssnOrItin, setSsnOrItin] = useState("");
@@ -110,55 +102,99 @@ export default function ProfilePage() {
   // Rehydrate from Supabase on mount so back-navigation from a later step
   // doesn't show empty fields for work the user already did.
   useEffect(() => {
+    let cancelled = false;
+
+    // legalName/dob/citizenship come from the I-94/I-20 read on the previous
+    // step, which may still be finishing when this page opens. `prev || value`
+    // never clobbers what the user has already typed or an earlier fill.
+    type IdentityShape = { legalName?: unknown; dob?: unknown; citizenship?: unknown };
+    const identityValue = (field: unknown) =>
+      (field as { value?: string } | undefined)?.value ?? "";
+    const applyIdentity = (profile: IdentityShape) => {
+      setLegalName((prev) => prev || identityValue(profile.legalName));
+      setDob((prev) => prev || identityValue(profile.dob));
+      setCitizenship((prev) => prev || identityValue(profile.citizenship));
+    };
+    const identityMissing = (profile: IdentityShape | null | undefined) =>
+      !profile ||
+      !identityValue(profile.legalName) ||
+      !identityValue(profile.dob) ||
+      !identityValue(profile.citizenship);
+
     fetchFiling()
       .then((data) => {
+        if (cancelled) return;
         const profile = data.profile;
-        if (!profile) return;
+        if (profile) {
+          applyIdentity(profile);
 
-        setLegalName((profile.legalName as { value?: string } | undefined)?.value ?? "");
-        setDob((profile.dob as { value?: string } | undefined)?.value ?? "");
-        setCitizenship((profile.citizenship as { value?: string } | undefined)?.value ?? "");
+          const usAddress = profile.usAddress as Address | undefined;
+          if (usAddress) {
+            setUsLine1(usAddress.line1 ?? "");
+            setUsCity(usAddress.city ?? "");
+            setUsState(usAddress.state ?? "");
+            setUsPostalCode(usAddress.postalCode ?? "");
+          }
 
-        const usAddress = profile.usAddress as Address | undefined;
-        if (usAddress) {
-          setUsLine1(usAddress.line1 ?? "");
-          setUsCity(usAddress.city ?? "");
-          setUsState(usAddress.state ?? "");
-          setUsPostalCode(usAddress.postalCode ?? "");
-        }
+          const foreignAddress = profile.foreignAddress as ForeignAddress | undefined;
+          if (foreignAddress) {
+            setForeignLine1(foreignAddress.line1 ?? "");
+            setForeignPostalCode(foreignAddress.postalCode ?? "");
+            setForeignCountry(foreignAddress.country ?? "");
+            setForeignState(foreignAddress.state ?? "");
+          }
 
-        const foreignAddress = profile.foreignAddress as ForeignAddress | undefined;
-        if (foreignAddress) {
-          setForeignLine1(foreignAddress.line1 ?? "");
-          setForeignPostalCode(foreignAddress.postalCode ?? "");
-          setForeignCountry(foreignAddress.country ?? "");
-          setForeignState(foreignAddress.state ?? "");
-        }
+          if (profile.filingStatus) setFilingStatus(profile.filingStatus);
 
-        if (profile.filingStatus) setFilingStatus(profile.filingStatus);
+          if (profile.ssnOrItin) {
+            setSsnOrItin(profile.ssnOrItin);
+            setHasSSN(/^9/.test(profile.ssnOrItin.trim()) ? "no" : "yes");
+            if (/^9/.test(profile.ssnOrItin.trim())) setHasOrAppliedItin("yes");
+          }
 
-        setSchool((profile.school as SchoolInfo | undefined) ?? null);
-
-        if (profile.ssnOrItin) {
-          setSsnOrItin(profile.ssnOrItin);
-          setHasSSN(/^9/.test(profile.ssnOrItin.trim()) ? "no" : "yes");
-          if (/^9/.test(profile.ssnOrItin.trim())) setHasOrAppliedItin("yes");
-        }
-
-        if (profile.priorReturn) {
-          setPriorReturnFiled(profile.priorReturn.filed ? "yes" : "no");
-          setPriorReturnYear(profile.priorReturn.year ? String(profile.priorReturn.year) : "");
-          const savedForm = profile.priorReturn.form ?? "";
-          if (savedForm === "1040" || savedForm === "1040-NR") {
-            setPriorReturnFormChoice(savedForm);
-          } else if (savedForm) {
-            setPriorReturnFormChoice("other");
-            setPriorReturnFormOther(savedForm);
+          if (profile.priorReturn) {
+            setPriorReturnFiled(profile.priorReturn.filed ? "yes" : "no");
+            setPriorReturnYear(profile.priorReturn.year ? String(profile.priorReturn.year) : "");
+            const savedForm = profile.priorReturn.form ?? "";
+            if (savedForm === "1040" || savedForm === "1040-NR") {
+              setPriorReturnFormChoice(savedForm);
+            } else if (savedForm) {
+              setPriorReturnFormChoice("other");
+              setPriorReturnFormOther(savedForm);
+            }
           }
         }
+        setIsHydrating(false);
+
+        // If identity isn't saved yet (documents still reading), poll a few
+        // times to fill it in — without blocking the rest of the form.
+        if (identityMissing(data.profile)) {
+          let attempts = 0;
+          const pollIdentity = () => {
+            if (cancelled || attempts >= 8) return;
+            attempts += 1;
+            setTimeout(() => {
+              fetchFiling()
+                .then((again) => {
+                  if (cancelled) return;
+                  if (again.profile) applyIdentity(again.profile);
+                  if (identityMissing(again.profile)) pollIdentity();
+                })
+                .catch(() => {});
+            }, 1500);
+          };
+          pollIdentity();
+        }
       })
-      .catch((err) => setError(err instanceof Error ? err.message : "Something went wrong."))
-      .finally(() => setIsHydrating(false));
+      .catch((err) => {
+        if (cancelled) return;
+        setError(err instanceof Error ? err.message : "Something went wrong.");
+        setIsHydrating(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   function validate(): FieldErrors {
@@ -260,7 +296,7 @@ export default function ProfilePage() {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? "Something went wrong.");
       }
-      router.push("/onboarding/interview");
+      router.push("/onboarding/confirm");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -279,15 +315,6 @@ export default function ProfilePage() {
   return (
     <WizardShell step={2} totalSteps={4} title="Tell us about yourself">
       <div className="space-y-6">
-        <div className="space-y-1.5">
-          <Label>Your I-20</Label>
-          <p className="text-xs text-muted-foreground">
-            Drop it in now and we&apos;ll read your school details in the background while you fill out the rest —
-            no waiting later.
-          </p>
-          <I20Slot initialSchool={school} />
-        </div>
-
         <div className="space-y-1.5">
           <Label htmlFor="legalName">Full legal name</Label>
           <Input

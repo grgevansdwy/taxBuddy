@@ -151,8 +151,9 @@ export const EXTRACTION_SPECS: {
     systemPrompt:
       "You extract fields from a US Form I-20 (Certificate of Eligibility for " +
       "Nonimmigrant Student Status) for an F-1 student's tax filing — school " +
-      "identity fields only. Extract only what's clearly printed in the " +
-      "document; do not infer or guess a value that isn't visible.",
+      "identity fields plus the earliest admission date. Extract only what's " +
+      "clearly printed in the document; do not infer or guess a value that " +
+      "isn't visible.",
     jsonSchemaName: "record_i20_extraction",
     jsonSchema: {
       type: "object",
@@ -173,13 +174,20 @@ export const EXTRACTION_SPECS: {
             "The address printed in the School Information section under 'School Address'. This is the " +
             "international student office's address, not necessarily the institution's general mailing address.",
         },
+        earliestAdmissionDate: {
+          type: "string",
+          description:
+            "The 'Earliest Admission Date' printed on the I-20 (near the Program of Study dates) — the " +
+            "earliest date the student is permitted to enter the US to begin the program — as ISO yyyy-mm-dd. " +
+            "Return an empty string if no such date is printed.",
+        },
         confidence: {
           type: "number",
           description:
             "Overall confidence (0-1) that every field above was read correctly.",
         },
       },
-      required: ["schoolName", "dsoName", "dsoAddress", "confidence"],
+      required: ["schoolName", "dsoName", "dsoAddress", "earliestAdmissionDate", "confidence"],
       additionalProperties: false,
     },
     schema: I20ExtractionSchema,
