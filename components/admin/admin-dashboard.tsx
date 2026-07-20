@@ -65,6 +65,8 @@ export function AdminDashboard() {
   const [accounts, setAccounts] = useState<AccountRow[] | null>(null);
   const [selected, setSelected] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Bumped after an admin mutation (e.g. resetting a filing) to refetch everything.
+  const [refreshKey, setRefreshKey] = useState(0);
 
   useEffect(() => {
     let ignore = false;
@@ -85,14 +87,18 @@ export function AdminDashboard() {
     return () => {
       ignore = true;
     };
-  }, [range]);
+  }, [range, refreshKey]);
 
   useEffect(() => {
+    let ignore = false;
     fetch("/api/admin/accounts")
       .then((res) => res.json())
-      .then((json) => setAccounts(json.accounts))
-      .catch(() => setError("Failed to load accounts."));
-  }, []);
+      .then((json) => !ignore && setAccounts(json.accounts))
+      .catch(() => !ignore && setError("Failed to load accounts."));
+    return () => {
+      ignore = true;
+    };
+  }, [refreshKey]);
 
   return (
     <div className="mx-auto max-w-6xl space-y-6">
@@ -199,6 +205,7 @@ export function AdminDashboard() {
           key={selected}
           accountId={selected}
           onClose={() => setSelected(null)}
+          onMutated={() => setRefreshKey((k) => k + 1)}
         />
       )}
     </div>

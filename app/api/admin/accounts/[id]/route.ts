@@ -87,3 +87,70 @@ export async function GET(
       : null,
   });
 }
+
+// Admin-only teardown so the filing flow can be re-tested against a real account:
+//   DELETE /api/admin/accounts/[id]?docType=w2  → remove just that one document
+//   DELETE /api/admin/accounts/[id]             → full reset: delete every
+//     uploaded document AND every filing row for the account, returning it to a
+//     clean pre-onboarding state (the auth login is kept).
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const guard = await requireAdmin();
+  if (!guard.ok) return guard.response;
+  const { admin } = guard;
+
+  const { id } = await params;
+  const docType = request.nextUrl.searchParams.get("docType");
+
+  const { data: filings, error } = await admin
+    .from("filings")
+    .select("id, documents_upload")
+    .eq("user_id", id);
+  if (error) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  const rows = (filings ?? []) as { id: string; documents_upload: Partial<Record<DocType, UploadedDoc>> | null }[];
+
+  // Single-document delete: pull the object from storage and drop its key from
+  // every filing row that references it.
+  if (docType) {
+    for (const row of rows) {
+      const uploads = row.documents_upload ?? {};
+      const doc = uploads[docType as DocType];
+      if (!doc) continue;
+      await admin.storage.from(STORAGE_BUCKET).remove([doc.path]);
+      const rest = { ...uploads };
+      delete rest[docType as DocType];
+      const { error: updateError } = await admin
+        .from("filings")
+        .update({ documents_upload: rest })
+        .eq("id", row.id);
+      if (updateError) {
+        return NextResponse.json({ error: updateError.message }, { status: 500 });
+      }
+    }
+    return NextResponse.json({ ok: true, deleted: docType });
+  }
+
+  // Full reset: remove every uploaded object, then delete the filing rows.
+  const paths = rows.flatMap((row) =>
+    Object.values(row.documents_upload ?? {})
+      .map((d) => d?.path)
+      .filter((p): p is string => typeof p === "string")
+  );
+  if (paths.length) {
+    await admin.storage.from(STORAGE_BUCKET).remove(paths);
+  }
+  const { error: deleteError } = await admin
+    .from("filings")
+    .delete()
+    .eq("user_id", id);
+  if (deleteError) {
+    return NextResponse.json({ error: deleteError.message }, { status: 500 });
+  }
+
+  return NextResponse.json({ ok: true, reset: true });
+}

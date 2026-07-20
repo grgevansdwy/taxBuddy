@@ -14,11 +14,12 @@ import {
 } from "@/components/ui/select";
 import { WizardShell } from "@/components/onboarding/wizard-shell";
 import { WizardNavRow } from "@/components/onboarding/wizard-nav-row";
+import { I20Slot } from "@/components/onboarding/i20-slot";
 import { CURRENT_SUPPORTED_TAX_YEAR } from "@/lib/config/taxYear";
 import { US_STATES } from "@/lib/config/usStates";
 import { COUNTRIES } from "@/lib/config/countries";
 import { fetchFiling } from "@/lib/client/fetchFiling";
-import type { Address, FilingStatus, ForeignAddress } from "@/lib/types";
+import type { Address, FilingStatus, ForeignAddress, SchoolInfo } from "@/lib/types";
 
 type YesNo = "yes" | "no";
 // "" = not yet answered; we no longer pre-select a default so the user has to
@@ -85,6 +86,13 @@ export default function ProfilePage() {
 
   const [filingStatus, setFilingStatus] = useState<FilingStatus>("single");
 
+  // The I-20 is requested for every F-1 filer regardless of any answer, and its
+  // extraction is the slowest (a GPT read plus a web search for school/DSO
+  // details). Surfacing it here — the first step where nothing depends on it —
+  // lets it upload and parse in the background across the rest of onboarding, so
+  // it's already "on file, confirmed" by the time the user reaches Documents.
+  const [school, setSchool] = useState<SchoolInfo | null>(null);
+
   const [hasSSN, setHasSSN] = useState<YesNoUnset>("");
   const [hasOrAppliedItin, setHasOrAppliedItin] = useState<YesNoUnset>("");
   const [ssnOrItin, setSsnOrItin] = useState("");
@@ -128,6 +136,8 @@ export default function ProfilePage() {
         }
 
         if (profile.filingStatus) setFilingStatus(profile.filingStatus);
+
+        setSchool((profile.school as SchoolInfo | undefined) ?? null);
 
         if (profile.ssnOrItin) {
           setSsnOrItin(profile.ssnOrItin);
@@ -269,6 +279,15 @@ export default function ProfilePage() {
   return (
     <WizardShell step={2} totalSteps={4} title="Tell us about yourself">
       <div className="space-y-6">
+        <div className="space-y-1.5">
+          <Label>Your I-20</Label>
+          <p className="text-xs text-muted-foreground">
+            Drop it in now and we&apos;ll read your school details in the background while you fill out the rest —
+            no waiting later.
+          </p>
+          <I20Slot initialSchool={school} />
+        </div>
+
         <div className="space-y-1.5">
           <Label htmlFor="legalName">Full legal name</Label>
           <Input

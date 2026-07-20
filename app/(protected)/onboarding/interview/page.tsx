@@ -8,9 +8,20 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { WizardShell } from "@/components/onboarding/wizard-shell";
 import { WizardNavRow } from "@/components/onboarding/wizard-nav-row";
 import { CharitableContributionCard } from "@/components/onboarding/charitable-contribution-card";
+import { W2Slot } from "@/components/onboarding/income-docs/w2-slot";
+import { Consolidated1099Slot } from "@/components/onboarding/income-docs/consolidated-1099-slot";
+import { Income1042SSlot } from "@/components/onboarding/income-docs/income-1042s-slot";
 import { CURRENT_SUPPORTED_TAX_YEAR } from "@/lib/config/taxYear";
 import { fetchFiling } from "@/lib/client/fetchFiling";
-import type { InterviewAnswers } from "@/lib/types";
+import type {
+  F1042SData,
+  F1099BData,
+  F1099DAData,
+  F1099DIVData,
+  F1099INTData,
+  InterviewAnswers,
+  W2Data,
+} from "@/lib/types";
 
 type YesNo = "yes" | "no";
 // "" = not yet answered; we no longer pre-select a default so the user has to
@@ -37,6 +48,66 @@ export default function InterviewPage() {
   // /api/reduction, which made it feel like a different form).
   const [charitableContributions, setCharitableContributions] = useState(0);
 
+  // Income-doc uploads live here, each revealed under the answer that requires
+  // it, so parsing overlaps with the rest of this form instead of stalling the
+  // Documents step. The slots save straight to the filing (via
+  // /api/documents/income); these arrays seed them and stay in sync so we can
+  // clear a doc if its triggering answer is later removed.
+  const [f1042s, setF1042s] = useState<F1042SData[]>([]);
+  const [f1099ints, setF1099ints] = useState<F1099INTData[]>([]);
+  const [f1099divs, setF1099divs] = useState<F1099DIVData[]>([]);
+  const [f1099bs, setF1099bs] = useState<F1099BData[]>([]);
+  const [f1099das, setF1099das] = useState<F1099DAData[]>([]);
+  const [w2s, setW2s] = useState<W2Data[]>([]);
+
+  const show1099 = interestIncome || dividendIncome || soldAssets;
+  const has1099Data = f1099ints.length + f1099divs.length + f1099bs.length + f1099das.length > 0;
+
+  // Best-effort persist of a cleared income array — the Documents step re-reads
+  // the filing and is the safety net if this doesn't land.
+  async function persistIncome(field: string, value: unknown[]) {
+    try {
+      await fetch("/api/documents/income", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ field, value }),
+      });
+    } catch {
+      /* ignore — Documents step reconciles */
+    }
+  }
+
+  // Removing a triggering answer discards the doc it required, preserving the
+  // invariant the old flow had for free (a doc could only be uploaded once its
+  // answer was given) — otherwise a de-selected income type would leave phantom
+  // income on the return.
+  function handleWorkedInUsChange(value: YesNo) {
+    setWorkedInUs(value);
+    if (value === "no" && w2s.length > 0) {
+      setW2s([]);
+      void persistIncome("w2s", []);
+    }
+  }
+
+  function handleScholarshipChange(value: ScholarshipCoverage) {
+    setScholarshipCoverage(value);
+    if (value !== "tuition_and_living" && f1042s.length > 0) {
+      setF1042s([]);
+      void persistIncome("f1042s", []);
+    }
+  }
+
+  function clear1099() {
+    setF1099ints([]);
+    setF1099divs([]);
+    setF1099bs([]);
+    setF1099das([]);
+    void persistIncome("f1099ints", []);
+    void persistIncome("f1099divs", []);
+    void persistIncome("f1099bs", []);
+    void persistIncome("f1099das", []);
+  }
+
   // Rehydrate from Supabase on mount so back-navigation from a later step
   // doesn't show empty fields for work the user already did.
   useEffect(() => {
@@ -55,6 +126,13 @@ export default function InterviewPage() {
           setDigitalAssets(data.profile.digitalAssets ? "yes" : "no");
         }
         setCharitableContributions(data.charitableContributions ?? 0);
+
+        setF1042s(data.f1042s ?? []);
+        setF1099ints(data.f1099ints ?? []);
+        setF1099divs(data.f1099divs ?? []);
+        setF1099bs(data.f1099bs ?? []);
+        setF1099das(data.f1099das ?? []);
+        setW2s(data.w2s ?? []);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Something went wrong."))
       .finally(() => setIsHydrating(false));
@@ -119,7 +197,11 @@ export default function InterviewPage() {
       <div className="space-y-6">
         <div className="space-y-2">
           <Label>Did you work in the US this year (on-campus, CPT, or OPT)?</Label>
-          <RadioGroup value={workedInUs} onValueChange={(v) => setWorkedInUs(v as YesNo)} className="flex gap-4">
+          <RadioGroup
+            value={workedInUs}
+            onValueChange={(v) => handleWorkedInUsChange(v as YesNo)}
+            className="flex gap-4"
+          >
             <label className="flex items-center gap-2 text-sm">
               <RadioGroupItem value="yes" /> Yes
             </label>
@@ -143,11 +225,21 @@ export default function InterviewPage() {
           </div>
         )}
 
+        {workedInUs === "yes" && (
+          <div className="space-y-1.5">
+            <Label>Your W-2</Label>
+            <p className="text-xs text-muted-foreground">
+              Drop it here and we&apos;ll read it in the background while you finish these questions.
+            </p>
+            <W2Slot initialValue={w2s} onItemsChange={setW2s} />
+          </div>
+        )}
+
         <div className="space-y-2">
           <Label>Did you receive a scholarship or fellowship?</Label>
           <RadioGroup
             value={scholarshipCoverage}
-            onValueChange={(v) => setScholarshipCoverage(v as ScholarshipCoverage)}
+            onValueChange={(v) => handleScholarshipChange(v as ScholarshipCoverage)}
             className="flex flex-col gap-2"
           >
             <label className="flex items-center gap-2 text-sm">
@@ -160,6 +252,16 @@ export default function InterviewPage() {
               <RadioGroupItem value="tuition_and_living" /> Yes, it covered tuition &amp; living expenses
             </label>
           </RadioGroup>
+
+          {scholarshipCoverage === "tuition_and_living" && (
+            <div className="space-y-1.5 pt-2">
+              <Label>Your 1042-S</Label>
+              <p className="text-xs text-muted-foreground">
+                Upload it now — we&apos;ll pull out the taxable portion in the background.
+              </p>
+              <Income1042SSlot initialValue={f1042s} onItemsChange={setF1042s} />
+            </div>
+          )}
         </div>
 
         <div className="space-y-2">
@@ -185,17 +287,58 @@ export default function InterviewPage() {
             answered — check any that apply and we&apos;ll request the matching tax form.
           </p>
           <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={interestIncome} onCheckedChange={(c) => setInterestIncome(c === true)} />
+            <Checkbox
+              checked={interestIncome}
+              onCheckedChange={(c) => {
+                const next = c === true;
+                setInterestIncome(next);
+                if (!next && !dividendIncome && !soldAssets && has1099Data) clear1099();
+              }}
+            />
             Bank interest (savings, CDs, high-yield accounts)
           </label>
           <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={dividendIncome} onCheckedChange={(c) => setDividendIncome(c === true)} />
+            <Checkbox
+              checked={dividendIncome}
+              onCheckedChange={(c) => {
+                const next = c === true;
+                setDividendIncome(next);
+                if (!next && !interestIncome && !soldAssets && has1099Data) clear1099();
+              }}
+            />
             Dividends
           </label>
           <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={soldAssets} onCheckedChange={(c) => setSoldAssets(c === true)} />
+            <Checkbox
+              checked={soldAssets}
+              onCheckedChange={(c) => {
+                const next = c === true;
+                setSoldAssets(next);
+                if (!next && !interestIncome && !dividendIncome && has1099Data) clear1099();
+              }}
+            />
             Sold stocks, crypto, or other assets (for a gain or loss)
           </label>
+
+          {show1099 && (
+            <div className="space-y-1.5 pt-2">
+              <Label>Your 1099</Label>
+              <p className="text-xs text-muted-foreground">
+                Your bank/broker&apos;s combined statement works — drop it here and we&apos;ll read the relevant
+                sections in the background.
+              </p>
+              <Consolidated1099Slot
+                initialInts={f1099ints}
+                initialDivs={f1099divs}
+                initialBs={f1099bs}
+                initialDas={f1099das}
+                onIntsChange={setF1099ints}
+                onDivsChange={setF1099divs}
+                onBsChange={setF1099bs}
+                onDasChange={setF1099das}
+              />
+            </div>
+          )}
         </div>
 
         <CharitableContributionCard value={charitableContributions} onChange={setCharitableContributions} />

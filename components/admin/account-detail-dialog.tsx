@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { Spinner } from "@/components/ui/spinner";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 
 interface DocPreview {
   docType: string;
@@ -84,12 +85,54 @@ function RecordsTable({ title, rows }: { title: string; rows: Record<string, unk
 export function AccountDetailDialog({
   accountId,
   onClose,
+  onMutated,
 }: {
   accountId: string;
   onClose: () => void;
+  onMutated?: () => void;
 }) {
   const [data, setData] = useState<DetailResponse | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  async function deleteDocument(docType: string, label: string) {
+    if (!confirm(`Delete the "${label}" document for this account? This can't be undone.`)) return;
+    setBusy(true);
+    try {
+      const res = await fetch(
+        `/api/admin/accounts/${accountId}?docType=${encodeURIComponent(docType)}`,
+        { method: "DELETE" }
+      );
+      if (!res.ok) throw new Error(`Delete failed (${res.status})`);
+      setData((prev) =>
+        prev ? { ...prev, documents: prev.documents.filter((d) => d.docType !== docType) } : prev
+      );
+      onMutated?.();
+    } catch (e) {
+      setError((e as Error).message);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function resetFiling() {
+    if (
+      !confirm(
+        "Reset this account? This permanently deletes ALL uploaded documents and filing data so they can re-test onboarding from scratch. The login is kept. Continue?"
+      )
+    )
+      return;
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/admin/accounts/${accountId}`, { method: "DELETE" });
+      if (!res.ok) throw new Error(`Reset failed (${res.status})`);
+      onMutated?.();
+      onClose();
+    } catch (e) {
+      setError((e as Error).message);
+      setBusy(false);
+    }
+  }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
@@ -181,16 +224,25 @@ export function AccountDetailDialog({
                           <span className="font-medium text-foreground">{doc.label}</span>
                           <span className="ml-2 text-muted-foreground">{doc.fileName}</span>
                         </div>
-                        {doc.url && (
-                          <a
-                            href={doc.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs font-medium text-primary hover:underline"
+                        <div className="flex items-center gap-3">
+                          {doc.url && (
+                            <a
+                              href={doc.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-xs font-medium text-primary hover:underline"
+                            >
+                              Open ↗
+                            </a>
+                          )}
+                          <button
+                            onClick={() => deleteDocument(doc.docType, doc.label)}
+                            disabled={busy}
+                            className="text-xs font-medium text-destructive hover:underline disabled:opacity-50"
                           >
-                            Open ↗
-                          </a>
-                        )}
+                            Delete
+                          </button>
+                        </div>
                       </div>
                       {doc.url ? (
                         <iframe
@@ -262,6 +314,23 @@ export function AccountDetailDialog({
             </>
           )}
         </div>
+
+        {/* Footer — destructive reset so admins can re-test onboarding */}
+        {data && (
+          <div className="flex items-center justify-between gap-3 border-t border-border px-6 py-3">
+            <p className="text-xs text-muted-foreground">
+              Deletes all uploaded files and filing data. Login is kept.
+            </p>
+            <Button
+              variant="destructive"
+              size="sm"
+              onClick={resetFiling}
+              disabled={busy}
+            >
+              {busy ? "Working…" : "Reset filing"}
+            </Button>
+          </div>
+        )}
       </div>
     </div>
   );
