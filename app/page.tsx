@@ -11,6 +11,7 @@ import "./landing.css";
 const hanken = Hanken_Grotesk({
   subsets: ["latin"],
   weight: ["400", "600", "700", "800"],
+
   display: "swap",
 });
 
@@ -85,7 +86,7 @@ export default function LandingPage() {
           </h1>
           <p className="font-body-lg text-body-lg text-on-surface-variant max-w-2xl mb-10">
             Built for international students. Upload your documents, we do the
-            rest — no manual data entry, no $50 filing fees.
+            rest. No manual data entry, no $50 filing fees.
           </p>
           <div className="flex flex-col sm:flex-row items-center gap-4 mb-20 z-10">
             <Link
@@ -102,19 +103,41 @@ export default function LandingPage() {
               Watch demo
             </a>
           </div>
-          {/* Product mockup. The photo carries its own perspective, so no CSS
-              tilt is layered on top; it renders flat at its natural aspect. */}
-          <div className="relative w-full max-w-5xl mx-auto mt-2 md:mt-6">
-            <div className="rounded-2xl overflow-hidden shadow-[0_0_30px_rgba(26,26,46,0.10),0_8px_24px_-6px_rgba(26,26,46,0.16)]">
-              <Image
-                alt="TaxBuddy open on a tablet, showing a completed 1040-NR ready to download"
-                className="w-full h-auto"
-                src="/hero_image.png"
-                width={1744}
-                height={1222}
-                sizes="(max-width: 1024px) 100vw, 1024px"
-                priority
-              />
+          {/* Tilted, layered product screenshots (front panel + one peeking behind). */}
+          <div className="relative w-full max-w-5xl mx-auto mt-2 md:mt-6 [perspective:1200px]">
+            {/* Decorative gradient blur behind the panels */}
+            <div className="absolute inset-0 bg-primary-fixed/20 blur-[110px] rounded-full z-0 translate-y-10 scale-110" />
+            <div
+              className="relative z-10 [transform-style:preserve-3d]"
+              style={{
+                transform: "rotateX(7deg) rotateY(-16deg) rotateZ(-3deg)",
+              }}
+            >
+              {/* Back window — the filing dashboard, sitting low and left */}
+              <div
+                className="absolute left-0 top-[26%] w-[52%] rounded-2xl overflow-hidden border border-border-gray shadow-[0_0_24px_rgba(26,26,46,0.08),0_6px_18px_-6px_rgba(26,26,46,0.12)]"
+                style={{ transform: "translateZ(-150px)" }}
+              >
+                <Image
+                  alt=""
+                  aria-hidden
+                  className="w-full h-auto"
+                  src="/hero-dashboard.png"
+                  width={3018}
+                  height={1518}
+                />
+              </div>
+              {/* Front window — the finished return, shifted right */}
+              <div className="relative ml-[20%] w-[76%] rounded-2xl overflow-hidden border border-border-gray shadow-[0_0_30px_rgba(26,26,46,0.10),0_8px_24px_-6px_rgba(26,26,46,0.16)]">
+                <Image
+                  alt="TaxBuddy — your completed 1040-NR ready to download"
+                  className="w-full h-auto"
+                  src="/hero-return-ready.png"
+                  width={2762}
+                  height={1488}
+                  priority
+                />
+              </div>
             </div>
           </div>
         </section>
@@ -192,7 +215,7 @@ export default function LandingPage() {
 
         {/* Section F (Founders Backstory) */}
         <section
-          className="site-container flex flex-col items-center justify-center py-[64px] text-center"
+          className="site-container min-h-screen flex flex-col items-center justify-center py-section-gap-lg text-center"
           id="about"
         >
           <div className="max-w-3xl mx-auto">
