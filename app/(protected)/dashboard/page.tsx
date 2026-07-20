@@ -11,6 +11,7 @@ import {
   CardDescription,
 } from "@/components/ui/card";
 import { CURRENT_SUPPORTED_TAX_YEAR } from "@/lib/config/taxYear";
+import { isAdmin } from "@/lib/config/admin";
 import { ONBOARDING_STEPS, routeForStage } from "@/lib/config/onboarding";
 import { DOC_LABELS } from "@/lib/config/docLabels";
 import { formatIsoDate } from "@/lib/format";
@@ -175,6 +176,13 @@ export default async function DashboardPage() {
       <header className="flex items-center justify-between border-b border-border px-6 py-4">
         <span className="text-lg font-bold text-primary">TaxBuddy</span>
         <nav className="flex items-center gap-1 sm:gap-2">
+          {isAdmin(user.email) && (
+            <Link href="/admin">
+              <Button variant="ghost" size="sm">
+                Admin
+              </Button>
+            </Link>
+          )}
           <Link href="/">
             <Button variant="ghost" size="sm">
               Home
