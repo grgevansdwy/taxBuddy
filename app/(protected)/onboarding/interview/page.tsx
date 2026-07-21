@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -60,8 +60,48 @@ export default function InterviewPage() {
   const [f1099das, setF1099das] = useState<F1099DAData[]>([]);
   const [w2s, setW2s] = useState<W2Data[]>([]);
 
+  // Whether each income slot has a file mid-parse — combined with the saved-data
+  // checks below, this lets the "File" button light up as soon as every required
+  // doc is present, and hold the actual filing until parsing lands.
+  const [w2Processing, setW2Processing] = useState(false);
+  const [f1042sProcessing, setF1042sProcessing] = useState(false);
+  const [f1099Processing, setF1099Processing] = useState(false);
+  const [isFiling, setIsFiling] = useState(false);
+  const filedRef = useRef(false);
+
   const show1099 = interestIncome || dividendIncome || soldAssets;
   const has1099Data = f1099ints.length + f1099divs.length + f1099bs.length + f1099das.length > 0;
+
+  // This is the final step now, so it gates the actual filing on the required
+  // income docs being present (uploaded or still parsing) and, before finalizing,
+  // fully parsed. Which docs are required follows directly from the answers.
+  const needsW2 = workedInUs === "yes";
+  const needs1042s = scholarshipCoverage === "tuition_and_living";
+  const needs1099 = show1099;
+
+  const answersComplete =
+    workedInUs !== "" &&
+    scholarshipCoverage !== "" &&
+    digitalAssets !== "" &&
+    !(workedInUs === "yes" && onOPT === "");
+
+  const w2Ready = !needsW2 || w2s.length > 0;
+  const f1042sReady = !needs1042s || f1042s.length > 0;
+  const f1099Ready = !needs1099 || has1099Data;
+  const incomeReady = w2Ready && f1042sReady && f1099Ready;
+
+  const w2Present = !needsW2 || w2s.length > 0 || w2Processing;
+  const f1042sPresent = !needs1042s || f1042s.length > 0 || f1042sProcessing;
+  const f1099Present = !needs1099 || has1099Data || f1099Processing;
+  const incomePresent = w2Present && f1042sPresent && f1099Present;
+
+  const missingDocs = [
+    needsW2 && !w2s.length && !w2Processing ? "W-2" : null,
+    needs1042s && !f1042s.length && !f1042sProcessing ? "1042-S" : null,
+    needs1099 && !has1099Data && !f1099Processing ? "1099" : null,
+  ].filter((d): d is string => Boolean(d));
+
+  const activelyFiling = isFiling && incomePresent;
 
   // Best-effort persist of a cleared income array — the Documents step re-reads
   // the filing and is the safety net if this doesn't land.
@@ -138,13 +178,11 @@ export default function InterviewPage() {
       .finally(() => setIsHydrating(false));
   }, []);
 
-  async function handleSubmit() {
-    const unanswered =
-      workedInUs === "" ||
-      scholarshipCoverage === "" ||
-      digitalAssets === "" ||
-      (workedInUs === "yes" && onOPT === "");
-    if (unanswered) {
+  // Save the interview (and compute the checklist) now — this doesn't depend on
+  // the income docs parsing — then arm filing. isFiling flips only after the
+  // save succeeds, so the finalize effect below can't run before it.
+  async function handleFileYourTax() {
+    if (!answersComplete) {
       setError("Please answer all the questions before continuing.");
       return;
     }
@@ -176,7 +214,7 @@ export default function InterviewPage() {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? "Something went wrong.");
       }
-      router.push("/onboarding/documents");
+      setIsFiling(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
     } finally {
@@ -184,16 +222,35 @@ export default function InterviewPage() {
     }
   }
 
+  // Finalize once the user has committed AND every required income doc has
+  // finished parsing (incomeReady) — the button is intentionally clickable
+  // before the last extraction lands, so this may fire a beat later.
+  useEffect(() => {
+    if (!activelyFiling || !incomeReady || filedRef.current) return;
+    filedRef.current = true;
+    (async () => {
+      try {
+        const res = await fetch("/api/documents/file", { method: "POST" });
+        if (!res.ok) throw new Error("Couldn't finish filing — try again.");
+        router.push("/dashboard");
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Something went wrong.");
+        setIsFiling(false);
+        filedRef.current = false;
+      }
+    })();
+  }, [activelyFiling, incomeReady, router]);
+
   if (isHydrating) {
     return (
-      <WizardShell step={3} totalSteps={4} title="A few questions about your year">
+      <WizardShell step={4} totalSteps={4} title="A few questions about your year">
         <p className="text-sm text-muted-foreground">Loading...</p>
       </WizardShell>
     );
   }
 
   return (
-    <WizardShell step={3} totalSteps={4} title="A few questions about your year">
+    <WizardShell step={4} totalSteps={4} title="A few questions about your year">
       <div className="space-y-6">
         <div className="space-y-2">
           <Label>Did you work in the US this year (on-campus, CPT, or OPT)?</Label>
@@ -228,10 +285,7 @@ export default function InterviewPage() {
         {workedInUs === "yes" && (
           <div className="space-y-1.5">
             <Label>Your W-2</Label>
-            <p className="text-xs text-muted-foreground">
-              Drop it here and we&apos;ll read it in the background while you finish these questions.
-            </p>
-            <W2Slot initialValue={w2s} onItemsChange={setW2s} />
+            <W2Slot initialValue={w2s} onItemsChange={setW2s} onProcessingChange={setW2Processing} />
           </div>
         )}
 
@@ -256,10 +310,11 @@ export default function InterviewPage() {
           {scholarshipCoverage === "tuition_and_living" && (
             <div className="space-y-1.5 pt-2">
               <Label>Your 1042-S</Label>
-              <p className="text-xs text-muted-foreground">
-                Upload it now — we&apos;ll pull out the taxable portion in the background.
-              </p>
-              <Income1042SSlot initialValue={f1042s} onItemsChange={setF1042s} />
+              <Income1042SSlot
+                initialValue={f1042s}
+                onItemsChange={setF1042s}
+                onProcessingChange={setF1042sProcessing}
+              />
             </div>
           )}
         </div>
@@ -324,8 +379,8 @@ export default function InterviewPage() {
             <div className="space-y-1.5 pt-2">
               <Label>Your 1099</Label>
               <p className="text-xs text-muted-foreground">
-                Your bank/broker&apos;s combined statement works — drop it here and we&apos;ll read the relevant
-                sections in the background.
+                Your bank/broker&apos;s combined statement works (INT/DIV/B sections together). Add more than
+                one if you have several.
               </p>
               <Consolidated1099Slot
                 initialInts={f1099ints}
@@ -336,6 +391,7 @@ export default function InterviewPage() {
                 onDivsChange={setF1099divs}
                 onBsChange={setF1099bs}
                 onDasChange={setF1099das}
+                onProcessingChange={setF1099Processing}
               />
             </div>
           )}
@@ -343,13 +399,29 @@ export default function InterviewPage() {
 
         <CharitableContributionCard value={charitableContributions} onChange={setCharitableContributions} />
 
+        {missingDocs.length > 0 && (
+          <p className="text-xs text-muted-foreground">Add your {missingDocs.join(", ")} to file.</p>
+        )}
+        {activelyFiling && !incomeReady && (
+          <p className="text-xs text-muted-foreground">
+            Finishing up your documents — we&apos;ll file as soon as they&apos;re ready.
+          </p>
+        )}
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <WizardNavRow
-          step={3}
-          onContinue={handleSubmit}
-          continueLabel={isSubmitting ? "Working it out..." : "Continue"}
-          disabled={isSubmitting}
+          step={4}
+          onContinue={handleFileYourTax}
+          continueLabel={
+            isSubmitting
+              ? "Working it out..."
+              : activelyFiling
+                ? incomeReady
+                  ? "Filing..."
+                  : "Almost there..."
+                : "File your Tax! →"
+          }
+          disabled={isSubmitting || activelyFiling || !incomePresent}
         />
       </div>
     </WizardShell>

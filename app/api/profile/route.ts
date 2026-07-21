@@ -36,7 +36,7 @@ export async function POST(request: Request) {
     {
       user_id: user.id,
       tax_year: body.taxYear,
-      stage: "interview",
+      stage: "confirm",
       profile_page: {
         ...(existing?.profile_page ?? {}),
         legalName: { value: body.legalName, confidence: 1, confirmed: true, source: "unknown" },

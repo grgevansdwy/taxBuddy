@@ -60,6 +60,7 @@ export function Consolidated1099Slot({
   const [divs, setDivs] = useState<F1099DIVData[]>(initialDivs);
   const [bs, setBs] = useState<F1099BData[]>(initialBs);
   const [das, setDas] = useState<F1099DAData[]>(initialDas);
+  const [names, setNames] = useState<string[]>([]);
   const [phase, setPhase] = useState<Phase>("upload");
   const [error, setError] = useState<string | null>(null);
   const [lastFound, setLastFound] = useState<string[] | null>(null);
@@ -89,6 +90,8 @@ export function Consolidated1099Slot({
     if (!file) return;
     setError(null);
     setLastFound(null);
+    // Show the filename chip instantly on select — don't wait for extraction.
+    setNames((prev) => [...prev, file.name]);
     setPhase("processing");
     try {
       const uploadForm = new FormData();
@@ -108,13 +111,13 @@ export function Consolidated1099Slot({
           "/api/documents/extract/f1099div"
         ),
         extractSection<
-          { payerName: string; transactions: Omit<F1099BTransaction, "realizedGainLoss">[] } & {
+          { payerName: string; transactions: Omit<F1099BTransaction, "realizedGainLoss">[]; reportedNetGainLoss: number | null } & {
             sectionPresent: boolean;
             confidence: number;
           }
         >(file, "f1099b", "/api/documents/extract/f1099b"),
         extractSection<
-          { payerName: string; transactions: Omit<F1099BTransaction, "realizedGainLoss">[] } & {
+          { payerName: string; transactions: Omit<F1099BTransaction, "realizedGainLoss">[]; reportedNetGainLoss: number | null } & {
             sectionPresent: boolean;
             confidence: number;
           }
@@ -136,15 +139,20 @@ export function Consolidated1099Slot({
         found.push("dividends");
       }
       if (bResult) {
-        nextBs = [...bs, { payerName: bResult.payerName, transactions: bResult.transactions.map((t) => ({ ...t, realizedGainLoss: 0 })) }];
+        nextBs = [...bs, { payerName: bResult.payerName, reportedNetGainLoss: bResult.reportedNetGainLoss, transactions: bResult.transactions.map((t) => ({ ...t, realizedGainLoss: 0 })) }];
         found.push("broker transactions");
       }
       if (daResult) {
-        nextDas = [...das, { payerName: daResult.payerName, transactions: daResult.transactions.map((t) => ({ ...t, realizedGainLoss: 0 })) }];
+        nextDas = [...das, { payerName: daResult.payerName, reportedNetGainLoss: daResult.reportedNetGainLoss, transactions: daResult.transactions.map((t) => ({ ...t, realizedGainLoss: 0 })) }];
         found.push("digital asset transactions");
       }
 
       if (found.length === 0) {
+        // Nothing usable in the doc — take the optimistic chip back down.
+        setNames((prev) => {
+          const idx = prev.lastIndexOf(file.name);
+          return idx < 0 ? prev : prev.filter((_, i) => i !== idx);
+        });
         setError("Couldn't find an interest, dividend, broker-transaction, or digital-asset section on this document.");
         setPhase("upload");
         return;
@@ -164,6 +172,11 @@ export function Consolidated1099Slot({
       setLastFound(found);
       setPhase("upload");
     } catch (err) {
+      // Roll back the chip we optimistically showed on select.
+      setNames((prev) => {
+        const idx = prev.lastIndexOf(file.name);
+        return idx < 0 ? prev : prev.filter((_, i) => i !== idx);
+      });
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setPhase("upload");
     }
@@ -181,17 +194,16 @@ export function Consolidated1099Slot({
 
   return (
     <div className="space-y-1.5">
-      {totalCount > 0 && (
-        <p className="text-xs text-muted-foreground">
-          On file: {summary} document{totalCount === 1 ? "" : "s"} confirmed.
-        </p>
-      )}
       <FileDropSlot
         label={totalCount > 0 ? "Add another 1099" : "1099 (Interest / Dividends / Broker / Digital Assets)"}
-        description={phase === "processing" ? "Reading your document..." : undefined}
-        file={null}
+        fileNames={names}
         onChange={handleFile}
       />
+      {names.length === 0 && totalCount > 0 && (
+        <p className="text-xs text-muted-foreground">
+          On file: {summary} document{totalCount === 1 ? "" : "s"}.
+        </p>
+      )}
       {lastFound && (
         <p className="text-xs text-foreground">Found and saved: {lastFound.join(", ")}.</p>
       )}

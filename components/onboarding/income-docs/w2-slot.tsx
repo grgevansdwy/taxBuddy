@@ -21,6 +21,7 @@ export function W2Slot({
   onProcessingChange?: (processing: boolean) => void;
 }) {
   const [items, setItems] = useState<W2Data[]>(initialValue);
+  const [names, setNames] = useState<string[]>([]);
   const [phase, setPhase] = useState<Phase>("upload");
   const [error, setError] = useState<string | null>(null);
 
@@ -37,6 +38,8 @@ export function W2Slot({
   async function handleFile(file: File | null) {
     if (!file) return;
     setError(null);
+    // Show the filename chip instantly on select — don't wait for extraction.
+    setNames((prev) => [...prev, file.name]);
     setPhase("processing");
     try {
       const uploadForm = new FormData();
@@ -81,6 +84,11 @@ export function W2Slot({
       setItems(nextItems);
       setPhase("upload");
     } catch (err) {
+      // Roll back the chip we optimistically showed on select.
+      setNames((prev) => {
+        const idx = prev.lastIndexOf(file.name);
+        return idx < 0 ? prev : prev.filter((_, i) => i !== idx);
+      });
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setPhase("upload");
     }
@@ -88,17 +96,16 @@ export function W2Slot({
 
   return (
     <div className="space-y-1.5">
-      {items.length > 0 && (
-        <p className="text-xs text-muted-foreground">
-          {items.length} W-2 document{items.length === 1 ? "" : "s"} on file, confirmed.
-        </p>
-      )}
       <FileDropSlot
         label={items.length > 0 ? "Add another W-2" : "W-2"}
-        description={phase === "processing" ? "Reading your document..." : undefined}
-        file={null}
+        fileNames={names}
         onChange={handleFile}
       />
+      {names.length === 0 && items.length > 0 && (
+        <p className="text-xs text-muted-foreground">
+          {items.length} W-2 document{items.length === 1 ? "" : "s"} on file.
+        </p>
+      )}
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );

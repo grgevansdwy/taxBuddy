@@ -19,10 +19,12 @@ export const F1099DAExtractionSchema = z.object({
       proceeds: z.number(),
       costBasis: z.number(),
       washSaleLossDisallowed: z.number(), // box 1i (digital-asset wash sale); 0 if none
+      reportedGainLoss: z.number(), // broker's printed "Gain or loss(-)" figure — verification-only
       isShortTerm: z.boolean(),
       box4FederalTaxWithheld: z.number(),
     })
   ),
+  reportedNetGainLoss: z.number().nullable(), // see f1099b.ts — the section's printed grand total, reconcile-only
   confidence: z.number().min(0).max(1),
 });
 

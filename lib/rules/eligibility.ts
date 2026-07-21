@@ -43,6 +43,51 @@ function daysPresentInYear(travelHistory: I94TravelRow[], year: number): number 
   return total;
 }
 
+// The F-1 five-year exempt-individual count starts at the first US entry made
+// *as an F-1 student*, not at any earlier entry on a different status (e.g. a
+// tourist B visa years earlier). The I-20's "Earliest Admission Date" is the
+// earliest a student may enter to begin the program, so the first travel-history
+// arrival on/after it is the true first F-1 entry. Falls back to `fallback` (the
+// I-94's earliest arrival) when the I-20 date is absent, so filers without a
+// readable admission date keep the prior behavior.
+export function computeFirstF1EntryDate(
+  travelHistory: I94TravelRow[],
+  earliestAdmissionDate: string,
+  fallback: string,
+): string {
+  if (!earliestAdmissionDate) return fallback;
+  const firstArrivalOnOrAfter = travelHistory
+    .filter((row) => row.type === "arrival")
+    .map((row) => row.date)
+    .sort((a, b) => a.localeCompare(b))
+    .find((date) => date >= earliestAdmissionDate);
+  // No recorded arrival on/after the admission date (incomplete travel history):
+  // the admission date itself is the best available anchor for the F-1 start.
+  return firstArrivalOnOrAfter ?? earliestAdmissionDate;
+}
+
+// The subset of block reasons that depend only on the user's answers, not on
+// anything extracted from the documents. The onboarding flow checks these right
+// after the eligibility questions (before profile), so an answer-based block
+// fires early instead of after the document-derived confirm step. Messages are
+// kept identical to the corresponding branches in evaluateEligibility below.
+export function answerBasedBlockReason(answers: {
+  hasGreenCard: boolean;
+  changedVisaType: boolean;
+  incomeOnlyInWashington: boolean;
+}): string | null {
+  if (answers.hasGreenCard) {
+    return "Green card holders are treated as US residents for tax purposes, which is outside what we support right now.";
+  }
+  if (answers.changedVisaType) {
+    return "You mentioned changing visa type at some point, which we can't account for yet. Not supported yet.";
+  }
+  if (!answers.incomeOnlyInWashington) {
+    return "We currently only support filers whose income was earned entirely while physically working or living in Washington State. Not supported yet.";
+  }
+  return null;
+}
+
 export function evaluateEligibility(input: EligibilityInput): EligibilityResult {
   const firstEntryYear = Number(input.firstEntryDate.slice(0, 4));
   const exemptYearsUsed = input.taxYear - firstEntryYear + 1;

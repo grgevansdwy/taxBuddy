@@ -14,6 +14,7 @@ import type {
 } from "@/lib/types";
 import { TAX_YEAR_CONFIG } from "@/lib/config/taxYear";
 import { findTreatyRuleForCountryName } from "@/lib/rules/treaties";
+import { reconcileCapitalGainsTotals } from "@/lib/rules/capitalGains";
 
 // Stage 5 — the actual math. Pure and deterministic: every number here is
 // arithmetic or a bracket/treaty-table lookup, never an LLM call (Split Brain
@@ -234,6 +235,31 @@ export function computeIncomeEngine(args: {
       inputs: { capitalGainsNet, capitalGainsPresentDays, threshold: config.capital_gains_presence_days },
       output: capitalGainsTax,
     });
+
+    // Backstop: the summed lots must foot to the broker's own printed grand
+    // total. A mismatch means rows were dropped or duplicated in extraction —
+    // surface it for review rather than silently filing a wrong capital gain.
+    const reconciliation = reconcileCapitalGainsTotals([...f1099bs, ...f1099das]);
+    if (reconciliation && !reconciliation.ok) {
+      // One finding per statement that doesn't foot, so the filer knows exactly
+      // which broker's document to re-check. Per-document reconciliation means an
+      // aggregate offset can no longer mask a real mismatch here.
+      reconciliation.mismatched.forEach((docRec, i) => {
+        findings.push({
+          id: `capital-gains-reconciliation-${i}`,
+          kind: "capital_gains_reconciliation",
+          headline: `Your ${docRec.payerName} 1099 sales add up to $${round2(docRec.actual)}, but that statement's own total says $${round2(docRec.expected)} — please re-check the uploaded document.`,
+          amountUsd: Math.abs(docRec.delta) || undefined,
+          detail:
+            "The summed transactions don't match the broker's printed grand-total net gain/loss, which usually means a row was missed or double-counted while reading the PDF.",
+        });
+      });
+      trace.push({
+        rule: "scheduleNEC.capitalGainsReconciliation",
+        inputs: { documents: reconciliation.documents },
+        output: reconciliation.delta,
+      });
+    }
   }
 
   // ---------- Deduction ----------

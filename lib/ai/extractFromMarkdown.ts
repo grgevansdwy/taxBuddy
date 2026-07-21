@@ -16,7 +16,7 @@ export async function extractFromMarkdown<K extends ExtractionKind>(
     );
   }
 
-  return runMarkdownExtraction({
+  const result = await runMarkdownExtraction({
     systemPrompt: spec.systemPrompt,
     jsonSchemaName: spec.jsonSchemaName,
     jsonSchema: spec.jsonSchema,
@@ -24,4 +24,7 @@ export async function extractFromMarkdown<K extends ExtractionKind>(
     instruction: spec.instruction,
     schema: spec.schema,
   });
+
+  // Apply any per-kind deterministic correction (e.g. i94.firstEntryDate).
+  return spec.postProcess ? spec.postProcess(result) : result;
 }

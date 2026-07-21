@@ -1,17 +1,19 @@
 import type { ZodType } from "zod";
 import { openai } from "@/lib/ai/openaiClient";
+import { aiProvider } from "@/lib/ai/bedrockConfig";
+import { runNovaStructuredExtraction } from "@/lib/ai/bedrockClient";
 
 export interface MarkdownDocument {
   markdown: string;
   title: string;
 }
 
-// The one gpt-4o-mini call shape every document type shares: forced
-// structured output against a caller-supplied JSON schema, over pre-parsed
-// markdown text, Zod re-validated on the way out. See
+// The one extraction call shape every document type shares: forced structured
+// output against a caller-supplied JSON schema, over pre-parsed markdown text,
+// Zod re-validated on the way out. Dispatches to Nova Lite on Bedrock (default)
+// or OpenAI gpt-4o-mini (rollback) based on AI_PROVIDER. See
 // lib/ai/extractionSpecs.ts for the per-type prompt/schema and
-// lib/ai/extractFromMarkdown.ts for the single dispatcher that ties the two
-// together.
+// lib/ai/extractFromMarkdown.ts for the single dispatcher that ties them together.
 export async function runMarkdownExtraction<T>(input: {
   systemPrompt: string;
   jsonSchemaName: string;
@@ -24,11 +26,24 @@ export async function runMarkdownExtraction<T>(input: {
     .map((doc) => `# ${doc.title}\n\n${doc.markdown}`)
     .join("\n\n---\n\n");
 
+  const userText = `${input.instruction}\n\n${documentText}`;
+
+  if (aiProvider === "bedrock") {
+    return runNovaStructuredExtraction({
+      systemPrompt: input.systemPrompt,
+      jsonSchemaName: input.jsonSchemaName,
+      jsonSchema: input.jsonSchema,
+      userText,
+      schema: input.schema,
+    });
+  }
+
+  // Rollback path: OpenAI gpt-4o-mini.
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [
       { role: "system", content: input.systemPrompt },
-      { role: "user", content: `${input.instruction}\n\n${documentText}` },
+      { role: "user", content: userText },
     ],
     response_format: {
       type: "json_schema",
