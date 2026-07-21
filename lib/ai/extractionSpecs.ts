@@ -104,7 +104,7 @@ export const EXTRACTION_SPECS: {
         firstEntryDate: {
           type: "string",
           description:
-            "The earliest arrival date across the I-94 and travel history, as ISO yyyy-mm-dd. (Find the earliest date in the travel history)",
+            "The earliest arrival date across the I-94 and travel history, as ISO yyyy-mm-dd, but you need to ",
         },
         passportNumber: {
           type: "string",
@@ -187,7 +187,13 @@ export const EXTRACTION_SPECS: {
             "Overall confidence (0-1) that every field above was read correctly.",
         },
       },
-      required: ["schoolName", "dsoName", "dsoAddress", "earliestAdmissionDate", "confidence"],
+      required: [
+        "schoolName",
+        "dsoName",
+        "dsoAddress",
+        "earliestAdmissionDate",
+        "confidence",
+      ],
       additionalProperties: false,
     },
     schema: I20ExtractionSchema,
@@ -236,7 +242,8 @@ export const EXTRACTION_SPECS: {
         },
         box17StateTaxWithheld: {
           type: ["number", "null"],
-          description: "Box 17: state income tax withheld. Null if the box is blank.",
+          description:
+            "Box 17: state income tax withheld. Null if the box is blank.",
         },
         confidence: {
           type: "number",
@@ -471,9 +478,14 @@ export const EXTRACTION_SPECS: {
       "1099-B transaction row on this page exactly as printed, including every " +
       "individual lot under a security's heading — do not skip rows, do not " +
       "stop after the first security, do not infer or guess a value that isn't " +
-      "visible, and do not compute gain/loss yourself. For each lot also report " +
-      "the wash sale loss disallowed (box 1g, the amount marked 'W' in the " +
-      "accrued-market-discount/wash-sale column); use 0 when the lot has none.",
+      "visible. For each lot report the wash sale loss disallowed (box 1g): use " +
+      "this ONLY when the number is explicitly suffixed with the letter 'W' " +
+      "(e.g. '21.73 W'). If the accrued-market-discount/wash-sale column shows " +
+      "'...', a dash, is blank, or holds a number WITHOUT a 'W', use 0 — and " +
+      "NEVER copy the value from the adjacent 'Gain or loss' column into it. " +
+      "Separately, DO report that 'Gain or loss(-)' column value as " +
+      "reportedGainLoss, copied exactly as printed (negative for a loss); this " +
+      "is the broker's own figure and is used only to cross-check the others.",
     jsonSchemaName: "record_f1099b_extraction",
     jsonSchema: {
       type: "object",
@@ -512,7 +524,12 @@ export const EXTRACTION_SPECS: {
               washSaleLossDisallowed: {
                 type: "number",
                 description:
-                  "Box 1g: wash sale loss disallowed (the amount marked 'W' in the accrued-market-discount/wash-sale column). Use 0 when the lot has none.",
+                  "Box 1g: wash sale loss disallowed. Use the value ONLY when it is explicitly suffixed with 'W' (e.g. '21.73 W'). If the accrued-market-discount/wash-sale column shows '...', a dash, is blank, or has a number without a 'W', use 0. Never copy the adjacent 'Gain or loss' column here.",
+              },
+              reportedGainLoss: {
+                type: "number",
+                description:
+                  "The broker's printed 'Gain or loss(-)' figure for this lot, copied exactly as shown (negative for a loss). Verification-only — do not compute it yourself; read it from the form.",
               },
               isShortTerm: {
                 type: "boolean",
@@ -530,11 +547,17 @@ export const EXTRACTION_SPECS: {
               "proceeds",
               "costBasis",
               "washSaleLossDisallowed",
+              "reportedGainLoss",
               "isShortTerm",
               "box4FederalTaxWithheld",
             ],
             additionalProperties: false,
           },
+        },
+        reportedNetGainLoss: {
+          type: ["number", "null"],
+          description:
+            "If this page shows a section grand-total row for the sales table (a 'Totals' or 'Grand total' line summing the gain/loss across all lots), report its net gain/loss figure exactly as printed (negative for a net loss). Use null if no such total row appears on this page.",
         },
         confidence: {
           type: "number",
@@ -542,7 +565,7 @@ export const EXTRACTION_SPECS: {
             "Overall confidence (0-1) that every field above was read correctly.",
         },
       },
-      required: ["sectionPresent", "payerName", "transactions", "confidence"],
+      required: ["sectionPresent", "payerName", "transactions", "reportedNetGainLoss", "confidence"],
       additionalProperties: false,
     },
     schema: F1099BExtractionSchema,
@@ -580,9 +603,13 @@ export const EXTRACTION_SPECS: {
       "transaction row on this page exactly as printed, including every " +
       "individual lot under an asset's heading — do not skip rows, do not " +
       "stop after the first asset, do not infer or guess a value that isn't " +
-      "visible, and do not compute gain/loss yourself. For each lot also " +
-      "report the wash sale loss disallowed (box 1i, the amount marked 'W'); " +
-      "use 0 when the lot has none.",
+      "visible. For each lot report the wash sale loss disallowed (box 1i): use " +
+      "this ONLY when the number is explicitly suffixed with 'W' (e.g. " +
+      "'21.73 W'). If that column shows '...', a dash, is blank, or holds a " +
+      "number WITHOUT a 'W', use 0 — and NEVER copy the adjacent 'Gain or loss' " +
+      "column into it. Separately, DO report that 'Gain or loss(-)' column value " +
+      "as reportedGainLoss, copied exactly as printed (negative for a loss); " +
+      "this is the broker's own figure and is used only to cross-check the others.",
     jsonSchemaName: "record_f1099da_extraction",
     jsonSchema: {
       type: "object",
@@ -602,7 +629,8 @@ export const EXTRACTION_SPECS: {
             properties: {
               description: {
                 type: "string",
-                description: "The digital asset's name, e.g. 'Bitcoin' or 'Solana SOL'.",
+                description:
+                  "The digital asset's name, e.g. 'Bitcoin' or 'Solana SOL'.",
               },
               dateAcquired: {
                 type: ["string", "null"],
@@ -613,7 +641,10 @@ export const EXTRACTION_SPECS: {
                 type: "string",
                 description: "ISO yyyy-mm-dd.",
               },
-              proceeds: { type: "number", description: "Proceeds from the sale/disposition." },
+              proceeds: {
+                type: "number",
+                description: "Proceeds from the sale/disposition.",
+              },
               costBasis: {
                 type: "number",
                 description: "Cost or other basis.",
@@ -621,7 +652,12 @@ export const EXTRACTION_SPECS: {
               washSaleLossDisallowed: {
                 type: "number",
                 description:
-                  "Box 1i: wash sale loss disallowed for a digital asset that is also a security (the amount marked 'W'). Use 0 when the lot has none.",
+                  "Box 1i: wash sale loss disallowed for a digital asset that is also a security. Use the value ONLY when it is explicitly suffixed with 'W' (e.g. '21.73 W'). If that column shows '...', a dash, is blank, or has a number without a 'W', use 0. Never copy the adjacent 'Gain or loss' column here.",
+              },
+              reportedGainLoss: {
+                type: "number",
+                description:
+                  "The broker's printed 'Gain or loss(-)' figure for this lot, copied exactly as shown (negative for a loss). Verification-only — do not compute it yourself; read it from the form.",
               },
               isShortTerm: {
                 type: "boolean",
@@ -639,11 +675,17 @@ export const EXTRACTION_SPECS: {
               "proceeds",
               "costBasis",
               "washSaleLossDisallowed",
+              "reportedGainLoss",
               "isShortTerm",
               "box4FederalTaxWithheld",
             ],
             additionalProperties: false,
           },
+        },
+        reportedNetGainLoss: {
+          type: ["number", "null"],
+          description:
+            "If this page shows a section grand-total row for the sales table (a 'Totals' or 'Grand total' line summing the gain/loss across all lots), report its net gain/loss figure exactly as printed (negative for a net loss). Use null if no such total row appears on this page.",
         },
         confidence: {
           type: "number",
@@ -651,7 +693,7 @@ export const EXTRACTION_SPECS: {
             "Overall confidence (0-1) that every field above was read correctly.",
         },
       },
-      required: ["sectionPresent", "payerName", "transactions", "confidence"],
+      required: ["sectionPresent", "payerName", "transactions", "reportedNetGainLoss", "confidence"],
       additionalProperties: false,
     },
     schema: F1099DAExtractionSchema,

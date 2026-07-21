@@ -109,13 +109,13 @@ export function Consolidated1099Slot({
           "/api/documents/extract/f1099div"
         ),
         extractSection<
-          { payerName: string; transactions: Omit<F1099BTransaction, "realizedGainLoss">[] } & {
+          { payerName: string; transactions: Omit<F1099BTransaction, "realizedGainLoss">[]; reportedNetGainLoss: number | null } & {
             sectionPresent: boolean;
             confidence: number;
           }
         >(file, "f1099b", "/api/documents/extract/f1099b"),
         extractSection<
-          { payerName: string; transactions: Omit<F1099BTransaction, "realizedGainLoss">[] } & {
+          { payerName: string; transactions: Omit<F1099BTransaction, "realizedGainLoss">[]; reportedNetGainLoss: number | null } & {
             sectionPresent: boolean;
             confidence: number;
           }
@@ -137,11 +137,11 @@ export function Consolidated1099Slot({
         found.push("dividends");
       }
       if (bResult) {
-        nextBs = [...bs, { payerName: bResult.payerName, transactions: bResult.transactions.map((t) => ({ ...t, realizedGainLoss: 0 })) }];
+        nextBs = [...bs, { payerName: bResult.payerName, reportedNetGainLoss: bResult.reportedNetGainLoss, transactions: bResult.transactions.map((t) => ({ ...t, realizedGainLoss: 0 })) }];
         found.push("broker transactions");
       }
       if (daResult) {
-        nextDas = [...das, { payerName: daResult.payerName, transactions: daResult.transactions.map((t) => ({ ...t, realizedGainLoss: 0 })) }];
+        nextDas = [...das, { payerName: daResult.payerName, reportedNetGainLoss: daResult.reportedNetGainLoss, transactions: daResult.transactions.map((t) => ({ ...t, realizedGainLoss: 0 })) }];
         found.push("digital asset transactions");
       }
 

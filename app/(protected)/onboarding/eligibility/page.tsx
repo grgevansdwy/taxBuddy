@@ -56,6 +56,15 @@ export default function EligibilityPage() {
   // on — see computeFirstF1EntryDate.
   const [i20File, setI20File] = useState<File | null>(null);
 
+  // File objects can't survive a page reload, but the raw uploads are saved in
+  // Supabase (documents_upload). On resume we rehydrate just the file *names*
+  // from there so the slots show what's already uploaded instead of looking
+  // empty — the user can proceed without re-uploading, or drop a new file to
+  // replace it. Keyed by the same DocType the upload route stored them under.
+  const [i20SavedName, setI20SavedName] = useState<string | null>(null);
+  const [i94SavedName, setI94SavedName] = useState<string | null>(null);
+  const [travelSavedName, setTravelSavedName] = useState<string | null>(null);
+
   // Only the answer-based (document-independent) questions live on this step now.
   // The document-derived confirmation (visa class, entry date, passport, F/J/M/Q)
   // and the actual decision moved to /onboarding/confirm, after profile.
@@ -93,6 +102,12 @@ export default function EligibilityPage() {
   useEffect(() => {
     fetchFiling()
       .then((data) => {
+        // Show the names of any docs already uploaded on a prior visit.
+        const uploads = data.uploadedDocuments ?? {};
+        setI20SavedName(uploads.i20?.fileName ?? null);
+        setI94SavedName(uploads.i94?.fileName ?? null);
+        setTravelSavedName(uploads.travel_history?.fileName ?? null);
+
         const saved = data.eligibilityInput;
         // Land on the questions sub-step if the documents were already read
         // (extraction draft present) OR the answers were already given — so a
@@ -279,7 +294,27 @@ export default function EligibilityPage() {
   // the drops. Move to the questions immediately; extraction + persistence run
   // in the background via extractionOp.
   function handleExtract() {
-    if (!i94File || !travelHistoryFile || !i20File) return;
+    const anyFresh = Boolean(i94File || travelHistoryFile || i20File);
+
+    // Nothing newly uploaded this visit — every doc is already in Supabase and
+    // was extracted on a prior visit. Just advance; there's nothing to re-read.
+    if (!anyFresh) {
+      setError(null);
+      setSubStep("questions");
+      return;
+    }
+
+    // A fresh upload means we re-read. The I-94 travel history and the I-20's
+    // admission date are read together to compute the F-1 first-entry date, so
+    // re-reading needs all three present as live files. After a resume (files
+    // gone from memory), that means re-uploading the set to change any one.
+    if (!i94File || !travelHistoryFile || !i20File) {
+      setError(
+        "To change a document, please re-upload all three so we can re-read them together.",
+      );
+      return;
+    }
+    setError(null);
     if (!i20Extraction.current || i20Status === "error") startI20(i20File);
     if (!i94Extraction.current || i94Status === "error") startI94(i94File, travelHistoryFile);
     setSubStep("questions");
@@ -471,6 +506,12 @@ export default function EligibilityPage() {
             onContinue={handleQuestionsNext}
             continueLabel={isSubmitting ? "Saving..." : "Continue"}
             disabled={isSubmitting || extractFailed}
+            // Back returns to the I-94/I-20 upload sub-step (not the dashboard)
+            // so a user who uploaded the wrong file can re-upload it.
+            onBack={() => {
+              setError(null);
+              setSubStep("upload");
+            }}
           />
         </div>
       </WizardShell>
@@ -508,11 +549,24 @@ export default function EligibilityPage() {
         {/* Ordered slowest-to-read first: the I-20 (GPT read + school
             web-search) starts parsing the instant it's dropped, while the user
             is still finding their I-94 and travel history. */}
-        <FileDropSlot label="I-20" file={i20File} onChange={handleI20Change} />
-        <FileDropSlot label="I-94" file={i94File} onChange={handleI94Change} />
+        <FileDropSlot
+          label="I-20"
+          file={i20File}
+          fileNames={!i20File && i20SavedName ? [i20SavedName] : undefined}
+          onChange={handleI20Change}
+        />
+        <FileDropSlot
+          label="I-94"
+          file={i94File}
+          fileNames={!i94File && i94SavedName ? [i94SavedName] : undefined}
+          onChange={handleI94Change}
+        />
         <FileDropSlot
           label="I-94 travel history"
           file={travelHistoryFile}
+          fileNames={
+            !travelHistoryFile && travelSavedName ? [travelSavedName] : undefined
+          }
           onChange={handleTravelChange}
         />
 
@@ -522,7 +576,11 @@ export default function EligibilityPage() {
           step={1}
           onContinue={handleExtract}
           continueLabel="Continue"
-          disabled={!i94File || !travelHistoryFile || !i20File}
+          disabled={
+            !(i94File || i94SavedName) ||
+            !(travelHistoryFile || travelSavedName) ||
+            !(i20File || i20SavedName)
+          }
         />
       </div>
     </WizardShell>

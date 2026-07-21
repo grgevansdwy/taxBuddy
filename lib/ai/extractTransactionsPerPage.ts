@@ -30,10 +30,17 @@ export async function extractTransactionsPerPage<K extends "f1099b" | "f1099da">
     return perPage[0]; // sectionPresent: false, empty transactions — same shape on every page
   }
 
+  // The section's printed grand-total row lives on a single page (usually the
+  // last), so take the first non-null across the pages that had the section.
+  const reportedNetGainLoss =
+    present.map((page) => (page as { reportedNetGainLoss?: number | null }).reportedNetGainLoss).find((v) => v != null) ??
+    null;
+
   return {
     sectionPresent: true,
     payerName: present[0].payerName,
     transactions: present.flatMap((page) => page.transactions),
+    reportedNetGainLoss,
     confidence: Math.min(...present.map((page) => page.confidence)),
   } as Result;
 }

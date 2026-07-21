@@ -157,6 +157,12 @@ export interface F1099BTransaction {
   costBasis: number; // box 1e — cost or other basis
   washSaleLossDisallowed: number; // box 1g (1099-B) / box 1i (1099-DA) — disallowed loss added back; 0 if none
   realizedGainLoss: number; // allowed gain/loss = proceeds - costBasis + washSaleLossDisallowed
+  // The broker's own printed "Gain or loss(-)" figure. Verification-only: never
+  // fed into the tax math, but reconciled against the derived realizedGainLoss
+  // in withRealizedGainLoss to catch a mis-read wash-sale amount (the extractor
+  // sometimes copies this very column into washSaleLossDisallowed). Optional so
+  // pre-existing persisted lots (extracted before this field existed) still load.
+  reportedGainLoss?: number | null;
   isShortTerm: boolean; // box 2: true if short-term
   box4FederalTaxWithheld: number;
 }
@@ -164,6 +170,12 @@ export interface F1099BTransaction {
 export interface F1099BData {
   payerName: string;
   transactions: F1099BTransaction[];
+  // The broker's own printed section grand-total net gain/loss ("Totals" /
+  // "Grand total" row), if the statement showed one. Independent of the
+  // per-lot rows, so reconcileCapitalGainsTotals uses it to catch dropped or
+  // duplicated rows — a mismatch the per-row reportedGainLoss check can't see.
+  // Optional/null when the statement didn't print one or it wasn't read.
+  reportedNetGainLoss?: number | null;
 }
 
 // 1099-DA — proceeds from digital asset (crypto) broker transactions. Same
@@ -174,6 +186,7 @@ export interface F1099BData {
 export interface F1099DAData {
   payerName: string;
   transactions: F1099BTransaction[];
+  reportedNetGainLoss?: number | null; // see F1099BData — the 1099-DA section's printed grand total
 }
 
 // ---------- Engine Input ----------
@@ -236,6 +249,7 @@ export type FindingKind =
   | "exempt_interest" // bank interest exempt under §871(i)
   | "completeness" // income summary confirmation
   | "capital_gains_183" // 183-day rule applied to capital gains
+  | "capital_gains_reconciliation" // summed lots don't foot to the broker's printed grand total
   | "dividend_nec" // dividends routed to Schedule NEC
   | "state_crosscheck"; // W-2 box 15 shows taxable state
 
