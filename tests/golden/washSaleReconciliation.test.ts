@@ -119,6 +119,29 @@ describe("reconcileCapitalGainsTotals (document-level backstop)", () => {
     expect(round2(result!.actual)).toBe(353.55); // 31.01 + 322.54 — the missing lot's 272.70 is gone
     expect(round2(result!.delta)).toBe(-272.7);
   });
+
+  it("catches offsetting errors across two documents (no aggregate masking)", () => {
+    // One statement is over by +100, the other under by −100. Their aggregate
+    // delta cancels to 0, but each individually fails to foot — per-document
+    // reconciliation must still report NOT ok and name both offenders.
+    const overStated: F1099BData = {
+      payerName: "Robinhood",
+      reportedNetGainLoss: 200, // its lot sums to 300 → +100
+      transactions: [lot({ proceeds: 800, costBasis: 500, realizedGainLoss: 300 })],
+    };
+    const underStated: F1099BData = {
+      payerName: "Coinbase",
+      reportedNetGainLoss: 300, // its lot sums to 200 → −100
+      transactions: [lot({ proceeds: 700, costBasis: 500, realizedGainLoss: 200 })],
+    };
+    const result = reconcileCapitalGainsTotals([overStated, underStated]);
+    expect(round2(result!.delta)).toBe(0); // aggregate cancels...
+    expect(result?.ok).toBe(false); // ...but per-document reconciliation catches it
+    expect(result!.mismatched.map((d) => d.payerName).sort()).toEqual([
+      "Coinbase",
+      "Robinhood",
+    ]);
+  });
 });
 
 function round2(n: number): number {

@@ -157,9 +157,11 @@ export interface F1099BTransaction {
   costBasis: number; // box 1e — cost or other basis
   washSaleLossDisallowed: number; // box 1g (1099-B) / box 1i (1099-DA) — disallowed loss added back; 0 if none
   realizedGainLoss: number; // allowed gain/loss = proceeds - costBasis + washSaleLossDisallowed
-  // The broker's own printed "Gain or loss(-)" figure. Verification-only: never
-  // fed into the tax math, but reconciled against the derived realizedGainLoss
-  // in withRealizedGainLoss to catch a mis-read wash-sale amount (the extractor
+  // The broker's own printed "Gain or loss(-)" figure — the wash-sale-ADJUSTED
+  // realized gain/loss (Form 8949 column (h) = proceeds − basis + box 1g), which
+  // is the invariant withRealizedGainLoss relies on. Verification-only: never fed
+  // into the tax math, but reconciled against the derived realizedGainLoss in
+  // withRealizedGainLoss to catch a mis-read wash-sale amount (the extractor
   // sometimes copies this very column into washSaleLossDisallowed). Optional so
   // pre-existing persisted lots (extracted before this field existed) still load.
   reportedGainLoss?: number | null;

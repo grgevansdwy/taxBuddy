@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { parsePdfToMarkdownPages } from "@/lib/parsing/llamaParse";
 import { extractFromMarkdown } from "@/lib/ai/extractFromMarkdown";
+import { mapWithConcurrency } from "@/lib/ai/concurrency";
 import type { ExtractionKindResult } from "@/lib/ai/extractionSpecs";
 
 // Public, NO-AUTH sibling to the /api/documents/extract/* routes that power
@@ -101,11 +102,15 @@ export async function POST(request: Request) {
       // INT/DIV read the whole document (single record each), B/DA read
       // per-page and merge (a consolidated statement's sales tables span many
       // pages — see extractTransactionsPerPage's note).
+      // Per-page B/DA fan-outs are capped at 3 concurrent Bedrock calls each
+      // (mapWithConcurrency) so a long consolidated statement doesn't trip
+      // HTTP 429 — see NOVA_PRO_MIGRATION.md §4.4. INT+DIV+B+DA still start
+      // together; drop the cap to 2 if throttling reappears.
       const [intResult, divResult, bPages, daPages] = await Promise.all([
         extractFromMarkdown("f1099int", [{ title: "1099-INT", markdown: fullMarkdown }]),
         extractFromMarkdown("f1099div", [{ title: "1099-DIV", markdown: fullMarkdown }]),
-        Promise.all(pages.map((md) => extractFromMarkdown("f1099b", [{ title: "1099-B", markdown: md }]))),
-        Promise.all(pages.map((md) => extractFromMarkdown("f1099da", [{ title: "1099-DA", markdown: md }]))),
+        mapWithConcurrency(pages, 3, (md) => extractFromMarkdown("f1099b", [{ title: "1099-B", markdown: md }])),
+        mapWithConcurrency(pages, 3, (md) => extractFromMarkdown("f1099da", [{ title: "1099-DA", markdown: md }])),
       ]);
 
       const sections = {

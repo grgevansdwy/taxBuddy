@@ -90,6 +90,8 @@ export function Consolidated1099Slot({
     if (!file) return;
     setError(null);
     setLastFound(null);
+    // Show the filename chip instantly on select — don't wait for extraction.
+    setNames((prev) => [...prev, file.name]);
     setPhase("processing");
     try {
       const uploadForm = new FormData();
@@ -146,6 +148,11 @@ export function Consolidated1099Slot({
       }
 
       if (found.length === 0) {
+        // Nothing usable in the doc — take the optimistic chip back down.
+        setNames((prev) => {
+          const idx = prev.lastIndexOf(file.name);
+          return idx < 0 ? prev : prev.filter((_, i) => i !== idx);
+        });
         setError("Couldn't find an interest, dividend, broker-transaction, or digital-asset section on this document.");
         setPhase("upload");
         return;
@@ -163,9 +170,13 @@ export function Consolidated1099Slot({
       setBs(nextBs);
       setDas(nextDas);
       setLastFound(found);
-      setNames((prev) => [...prev, file.name]);
       setPhase("upload");
     } catch (err) {
+      // Roll back the chip we optimistically showed on select.
+      setNames((prev) => {
+        const idx = prev.lastIndexOf(file.name);
+        return idx < 0 ? prev : prev.filter((_, i) => i !== idx);
+      });
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setPhase("upload");
     }

@@ -12,8 +12,13 @@ export const aiProvider: AiProvider =
 
 export const bedrockConfig = {
   region: process.env.AWS_REGION ?? "us-east-1",
-  // Nova Lite — the gpt-4o-mini-tier model that runs all extraction.
-  novaModelId: process.env.BEDROCK_NOVA_MODEL_ID ?? "amazon.nova-lite-v1:0",
+  // Amazon Nova Pro (US inference profile) — the chosen gpt-4o-mini replacement
+  // for all structured extraction. Nova Pro matched Claude Haiku's top accuracy
+  // on the hardest consolidated-1099 test with zero throttling; Nova Lite/Micro
+  // were rejected for numeric hallucinations on tax figures (see
+  // NOVA_PRO_MIGRATION.md §1). To fall back to Haiku, see §7 — it needs a
+  // different (InvokeModel/Messages) wire format, not just a model-id swap.
+  novaModelId: process.env.BEDROCK_NOVA_MODEL_ID ?? "us.amazon.nova-pro-v1:0",
   // Bedrock API key (bearer token) used for model inference.
   bearerToken: process.env.AWS_BEARER_TOKEN_BEDROCK ?? "",
 } as const;
@@ -33,7 +38,7 @@ export const agentCoreConfig = {
 export function assertBedrockConfigured(): void {
   if (!bedrockConfig.bearerToken) {
     throw new Error(
-      "AWS_BEARER_TOKEN_BEDROCK is not set — needed for Nova Lite model calls."
+      "AWS_BEARER_TOKEN_BEDROCK is not set — needed for Nova Pro model calls."
     );
   }
 }

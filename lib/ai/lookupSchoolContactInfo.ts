@@ -55,8 +55,10 @@ export async function lookupSchoolContactInfo(args: {
 
   if (aiProvider === "bedrock") {
     // 1. Search Amazon's web index for the school's contact details.
+    // Keep the query under the Web Search tool's 200-char cap even for long
+    // institution names (over the cap → HTTP 400 from the gateway).
     const searchResults = await agentCoreWebSearch(
-      `${args.schoolName} mailing address, general phone number, and international student office phone number`
+      `${args.schoolName} mailing address, general and international student office phone`
     );
 
     // 2. Extract the three fields from the search results with Nova.

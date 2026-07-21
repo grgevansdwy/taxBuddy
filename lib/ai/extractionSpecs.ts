@@ -66,6 +66,10 @@ interface ExtractionSpec<T> {
   schema: ZodType<T>;
   instruction: string;
   documentTitles: string[];
+  // Optional deterministic correction applied to the (already Zod-validated)
+  // model output. Use for fields that are derivable in code and shouldn't
+  // depend on LLM reasoning — see i94.firstEntryDate.
+  postProcess?: (raw: T) => T;
 }
 
 export const EXTRACTION_SPECS: {
@@ -104,7 +108,7 @@ export const EXTRACTION_SPECS: {
         firstEntryDate: {
           type: "string",
           description:
-            "The earliest arrival date across the I-94 and travel history, as ISO yyyy-mm-dd, but you need to ",
+            "The earliest arrival date across the I-94 and travel history, as ISO yyyy-mm-dd. (Find the earliest date in the travel history.)",
         },
         passportNumber: {
           type: "string",
@@ -146,6 +150,18 @@ export const EXTRACTION_SPECS: {
     instruction:
       "Extract the required fields from the I-94 record and travel history above.",
     documentTitles: ["I-94", "I-94 travel history"],
+    // firstEntryDate = the earliest arrival in the travel history. This is a
+    // pure min() over dates the model has already transcribed into
+    // travelHistory, so compute it deterministically rather than trusting the
+    // model to reason out "the earliest" (weaker/cheaper models get this wrong
+    // or drop it). ISO yyyy-mm-dd sorts chronologically as a string.
+    postProcess: (raw) => {
+      const arrivals = raw.travelHistory
+        .filter((r) => r.type === "arrival" && /^\d{4}-\d{2}-\d{2}$/.test(r.date))
+        .map((r) => r.date)
+        .sort();
+      return arrivals.length > 0 ? { ...raw, firstEntryDate: arrivals[0] } : raw;
+    },
   },
   i20: {
     systemPrompt:
@@ -204,7 +220,12 @@ export const EXTRACTION_SPECS: {
     systemPrompt:
       "You extract fields from a US Form W-2 (Wage and Tax Statement) for an " +
       "F-1 student's tax filing. Extract only what's clearly printed in the " +
-      "document; do not infer or guess a value that isn't visible.",
+      "document; do not infer or guess a value that isn't visible. Always " +
+      "return every field in the schema — never omit one. When a numbered " +
+      "money box (Boxes 1-6) is blank, absent, or shows only whitespace/dashes, " +
+      "report it as the number 0, not as null and not by omitting it. For the " +
+      "state boxes, use null when Box 15 (state) or Box 17 (state tax withheld) " +
+      "is blank.",
     jsonSchemaName: "record_w2_extraction",
     jsonSchema: {
       type: "object",
@@ -339,8 +360,15 @@ export const EXTRACTION_SPECS: {
       "broker transactions — only report on the 1099-INT section. If there is " +
       "no 1099-INT section anywhere in the document, set sectionPresent to " +
       "false and leave the other fields as 0/empty rather than guessing. " +
-      "Extract only what's clearly printed; do not infer or guess a value that " +
-      "isn't visible.",
+      "IMPORTANT — multiple accounts for one payer: a single payer's 1099-INT " +
+      "often lists more than one account number, each with its own Box 1/Box 4/" +
+      "Box 8 line (a consolidated statement may show a per-account table). When " +
+      "that happens, report the SUM of each box across all of that payer's " +
+      "accounts, so every box reflects the payer's total for the year — do not " +
+      "report only the first account. This per-payer total is the only " +
+      "arithmetic you should do: do not sum across different payers (different " +
+      "names/EINs), and otherwise extract only what's clearly printed without " +
+      "inferring or guessing a value that isn't visible.",
     jsonSchemaName: "record_f1099int_extraction",
     jsonSchema: {
       type: "object",
@@ -360,15 +388,18 @@ export const EXTRACTION_SPECS: {
         },
         box1InterestIncome: {
           type: "number",
-          description: "Box 1: interest income.",
+          description:
+            "Box 1: interest income. If this payer lists multiple accounts, the SUM of Box 1 across all of them.",
         },
         box4FederalTaxWithheld: {
           type: "number",
-          description: "Box 4: federal income tax withheld.",
+          description:
+            "Box 4: federal income tax withheld. If this payer lists multiple accounts, the SUM across all of them.",
         },
         box8TaxExemptInterest: {
           type: "number",
-          description: "Box 8: tax-exempt interest.",
+          description:
+            "Box 8: tax-exempt interest. If this payer lists multiple accounts, the SUM across all of them.",
         },
         confidence: {
           type: "number",
@@ -529,7 +560,7 @@ export const EXTRACTION_SPECS: {
               reportedGainLoss: {
                 type: "number",
                 description:
-                  "The broker's printed 'Gain or loss(-)' figure for this lot, copied exactly as shown (negative for a loss). Verification-only — do not compute it yourself; read it from the form.",
+                  "The broker's printed realized 'Gain or loss(-)' column for this lot — the figure that already reflects any wash-sale adjustment (Form 8949 column (h) = proceeds − basis + the amount marked 'W'). Copy it exactly as shown (negative for a loss). Verification-only — read it from the form; do not compute it.",
               },
               isShortTerm: {
                 type: "boolean",
@@ -557,7 +588,7 @@ export const EXTRACTION_SPECS: {
         reportedNetGainLoss: {
           type: ["number", "null"],
           description:
-            "If this page shows a section grand-total row for the sales table (a 'Totals' or 'Grand total' line summing the gain/loss across all lots), report its net gain/loss figure exactly as printed (negative for a net loss). Use null if no such total row appears on this page.",
+            "If this page prints the section's COMBINED grand-total net gain/loss — a single 'Totals' / 'Grand total' line summing the gain/loss across EVERY lot in this section (short- AND long-term together) — report that figure exactly as printed (negative for a net loss). If the page shows only a per-category subtotal (e.g. a short-term-only or long-term-only total) with no single combined total, or shows no total row at all, use null.",
         },
         confidence: {
           type: "number",
@@ -657,7 +688,7 @@ export const EXTRACTION_SPECS: {
               reportedGainLoss: {
                 type: "number",
                 description:
-                  "The broker's printed 'Gain or loss(-)' figure for this lot, copied exactly as shown (negative for a loss). Verification-only — do not compute it yourself; read it from the form.",
+                  "The broker's printed realized 'Gain or loss(-)' column for this lot — the figure that already reflects any wash-sale adjustment (Form 8949 column (h) = proceeds − basis + the amount marked 'W'). Copy it exactly as shown (negative for a loss). Verification-only — read it from the form; do not compute it.",
               },
               isShortTerm: {
                 type: "boolean",
@@ -685,7 +716,7 @@ export const EXTRACTION_SPECS: {
         reportedNetGainLoss: {
           type: ["number", "null"],
           description:
-            "If this page shows a section grand-total row for the sales table (a 'Totals' or 'Grand total' line summing the gain/loss across all lots), report its net gain/loss figure exactly as printed (negative for a net loss). Use null if no such total row appears on this page.",
+            "If this page prints the section's COMBINED grand-total net gain/loss — a single 'Totals' / 'Grand total' line summing the gain/loss across EVERY lot in this section (short- AND long-term together) — report that figure exactly as printed (negative for a net loss). If the page shows only a per-category subtotal (e.g. a short-term-only or long-term-only total) with no single combined total, or shows no total row at all, use null.",
         },
         confidence: {
           type: "number",

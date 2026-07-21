@@ -38,6 +38,8 @@ export function Income1042SSlot({
   async function handleFile(file: File | null) {
     if (!file) return;
     setError(null);
+    // Show the filename chip instantly on select — don't wait for extraction.
+    setNames((prev) => [...prev, file.name]);
     setPhase("processing");
     try {
       const uploadForm = new FormData();
@@ -76,9 +78,13 @@ export function Income1042SSlot({
       if (!saveRes.ok) throw new Error("Couldn't save this document.");
 
       setItems(nextItems);
-      setNames((prev) => [...prev, file.name]);
       setPhase("upload");
     } catch (err) {
+      // Roll back the chip we optimistically showed on select.
+      setNames((prev) => {
+        const idx = prev.lastIndexOf(file.name);
+        return idx < 0 ? prev : prev.filter((_, i) => i !== idx);
+      });
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setPhase("upload");
     }

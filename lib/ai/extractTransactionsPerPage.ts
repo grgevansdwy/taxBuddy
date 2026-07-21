@@ -1,5 +1,6 @@
 import { parsePdfToMarkdownPages } from "@/lib/parsing/llamaParse";
 import { extractFromMarkdown } from "@/lib/ai/extractFromMarkdown";
+import { mapWithConcurrency } from "@/lib/ai/concurrency";
 import type { ExtractionKindResult } from "@/lib/ai/extractionSpecs";
 
 // Shared by 1099-B and 1099-DA: both list transactions across many pages of
@@ -21,8 +22,11 @@ export async function extractTransactionsPerPage<K extends "f1099b" | "f1099da">
 
   const pages = await parsePdfToMarkdownPages(file);
 
-  const perPage = (await Promise.all(
-    pages.map((markdown) => extractFromMarkdown(kind, [{ title: documentTitle, markdown }]))
+  // Bounded to 3 concurrent Bedrock calls — an unbounded fan-out over a 20+
+  // page statement throttled (HTTP 429) every model in testing. The retry in
+  // bedrockClient is the safety net; capping concurrency avoids tripping it.
+  const perPage = (await mapWithConcurrency(pages, 3, (markdown) =>
+    extractFromMarkdown(kind, [{ title: documentTitle, markdown }])
   )) as Result[];
 
   const present = perPage.filter((page) => page.sectionPresent);

@@ -253,30 +253,17 @@ export default function EligibilityPage() {
         return fetch("/api/documents/upload", { method: "POST", body: uploadForm });
       };
 
+      // Uploads write documents_upload and the draft writes eligibility_page —
+      // different columns from the identity/school writes below, so they're safe
+      // to run in parallel.
       await Promise.all([
         uploadFile("i94", i94File!),
         uploadFile("travel_history", travelHistoryFile!),
         uploadFile("i20", i20File!),
-        // Persist name/DOB/citizenship right away so the profile page arrives
-        // pre-filled — the user only confirms them there, never types them.
-        fetch("/api/documents/i94-identity", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            legalName: data.legalName,
-            dob: data.dob,
-            citizenship: data.citizenship,
-          }),
-        }),
-        fetch("/api/documents/i20", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ school }),
-        }),
         // Extracted eligibility inputs → eligibility_page draft, so the confirm
         // step (after profile) can rehydrate them without re-reading the docs.
         // Passport rides along here (not profile) to avoid racing the identity
-        // and school writes above.
+        // and school writes below.
         saveEligibilityDraft({
           visaClass: data.visaClass,
           firstEntryDate,
@@ -284,6 +271,27 @@ export default function EligibilityPage() {
           travelHistory: data.travelHistory,
         }),
       ]);
+
+      // These two BOTH read-modify-write the same profile_page JSON column, so
+      // they MUST run sequentially. Firing them together (as before) let the
+      // second one's stale read clobber the first one's write — a lost-update
+      // race that wiped the I-94 identity fields, leaving the profile page blank.
+      // Persist name/DOB/citizenship first so the profile page arrives pre-filled
+      // (the user only confirms them there, never types them).
+      await fetch("/api/documents/i94-identity", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          legalName: data.legalName,
+          dob: data.dob,
+          citizenship: data.citizenship,
+        }),
+      });
+      await fetch("/api/documents/i20", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ school }),
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Extraction failed.");
       setExtractFailed(true);

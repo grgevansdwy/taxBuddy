@@ -43,3 +43,6 @@ Robinhood Markets Consolidated Form 1099.pdf
 *.tsbuildinfo
 next-env.d.ts
 .gstack/
+
+# model-bench eval harness (throwaway; outputs contain real tax PII)
+eval/
