@@ -7,8 +7,10 @@
 
 export type AiProvider = "bedrock" | "openai";
 
+// Default is OpenAI (gpt-4o-mini). Set AI_PROVIDER=bedrock to opt into Nova Pro
+// once the Bedrock credentials are configured in the target environment.
 export const aiProvider: AiProvider =
-  process.env.AI_PROVIDER === "openai" ? "openai" : "bedrock";
+  process.env.AI_PROVIDER === "bedrock" ? "bedrock" : "openai";
 
 export const bedrockConfig = {
   region: process.env.AWS_REGION ?? "us-east-1",
@@ -22,6 +24,20 @@ export const bedrockConfig = {
   // Bedrock API key (bearer token) used for model inference.
   bearerToken: process.env.AWS_BEARER_TOKEN_BEDROCK ?? "",
 } as const;
+
+// Human-readable "who is actually answering" label for the admin dashboard, so
+// the deployed provider/model can be confirmed without shelling into the env.
+// The Bedrock half is derived from the configured model id rather than hardcoded,
+// because BEDROCK_NOVA_MODEL_ID can be pointed at Haiku (see §7 above).
+export function activeModelLabel(): string {
+  if (aiProvider === "openai") return "OpenAI + gpt-4o-mini";
+
+  const id = bedrockConfig.novaModelId.toLowerCase();
+  if (id.includes("haiku")) return "Bedrock + Claude Haiku";
+  if (id.includes("nova")) return "Bedrock + Nova Pro";
+  // Unrecognised id — show it verbatim rather than mislabelling it.
+  return `Bedrock + ${bedrockConfig.novaModelId}`;
+}
 
 // AgentCore Web Search — used only by the school-contact lookup. Authenticates
 // with IAM (SigV4), NOT the Bedrock bearer token.

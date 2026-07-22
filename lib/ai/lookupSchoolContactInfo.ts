@@ -8,8 +8,8 @@ import { runNovaStructuredExtraction } from "@/lib/ai/bedrockClient";
 // student office's address (see lib/extraction/schemas/i20.ts). Form 8843
 // lines 9/10 also need the institution's own mailing address/phone and the
 // international office's phone number — none of which are on the I-20 — so this
-// looks them up via live web search. Dispatches to AgentCore Web Search + Nova
-// on Bedrock (default) or OpenAI's web_search tool (rollback) via AI_PROVIDER.
+// looks them up via live web search. Dispatches to OpenAI's web_search tool
+// (default) or AgentCore Web Search + Nova on Bedrock (AI_PROVIDER=bedrock).
 const SchoolContactLookupSchema = z.object({
   address: z.string(),
   phone: z.string(),
@@ -73,7 +73,7 @@ export async function lookupSchoolContactInfo(args: {
     });
   }
 
-  // Rollback path: OpenAI Responses API with the built-in web_search tool.
+  // Default path: OpenAI Responses API with the built-in web_search tool.
   const response = await openai.responses.create({
     model: "gpt-4o-mini",
     tools: [{ type: "web_search" }],

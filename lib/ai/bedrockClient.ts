@@ -7,8 +7,9 @@ import type { DocumentType } from "@smithy/types";
 import type { ZodType } from "zod";
 import { bedrockConfig, assertBedrockConfigured } from "@/lib/ai/bedrockConfig";
 
-// Amazon Nova Pro on Bedrock — the gpt-4o-mini replacement for all structured
-// extraction. The Converse API's forced tool use is Bedrock's way of getting
+// Amazon Nova Pro on Bedrock — the opt-in alternative to gpt-4o-mini for
+// structured extraction, reached only when AI_PROVIDER=bedrock.
+// The Converse API's forced tool use is Bedrock's way of getting
 // strict JSON out of a model: we declare a single tool whose input schema IS
 // the shape we want, force the model to "call" it, and read the arguments it
 // filled in. Same idea as OpenAI's response_format json_schema, different
