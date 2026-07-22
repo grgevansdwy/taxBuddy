@@ -10,8 +10,8 @@ export interface MarkdownDocument {
 
 // The one extraction call shape every document type shares: forced structured
 // output against a caller-supplied JSON schema, over pre-parsed markdown text,
-// Zod re-validated on the way out. Dispatches to Nova Lite on Bedrock (default)
-// or OpenAI gpt-4o-mini (rollback) based on AI_PROVIDER. See
+// Zod re-validated on the way out. Dispatches to OpenAI gpt-4o-mini (default)
+// or Nova Pro on Bedrock (AI_PROVIDER=bedrock) based on AI_PROVIDER. See
 // lib/ai/extractionSpecs.ts for the per-type prompt/schema and
 // lib/ai/extractFromMarkdown.ts for the single dispatcher that ties them together.
 export async function runMarkdownExtraction<T>(input: {
@@ -38,7 +38,7 @@ export async function runMarkdownExtraction<T>(input: {
     });
   }
 
-  // Rollback path: OpenAI gpt-4o-mini.
+  // Default path: OpenAI gpt-4o-mini.
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [

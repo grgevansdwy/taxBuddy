@@ -35,6 +35,9 @@ yarn-error.log*
 
 # real personal tax documents dropped in for local testing — never commit these
 Robinhood Markets Consolidated Form 1099.pdf
+# ...and any other PDF dropped at the repo root. Test fixtures belong in tests/
+# and the blank IRS forms in lib/pdf/templates/, both of which stay tracked.
+/*.pdf
 
 # vercel
 .vercel

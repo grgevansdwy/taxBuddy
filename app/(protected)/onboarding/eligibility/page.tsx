@@ -86,16 +86,16 @@ export default function EligibilityPage() {
   // the slowest one (the I-20, which does a GPT read + a school web-search)
   // is already working while the user is still finding their I-94. The in-flight
   // extraction promises live in refs; Continue just awaits whatever's left.
-  type DocStatus = "idle" | "processing" | "done" | "error";
   const i20Extraction = useRef<Promise<I20ExtractResponse> | null>(null);
   const i94Extraction = useRef<Promise<I94Extraction> | null>(null);
-  const [i20Status, setI20Status] = useState<DocStatus>("idle");
-  const [i94Status, setI94Status] = useState<DocStatus>("idle");
 
   // The whole extract-and-persist operation, so the answers save (on the
   // questions step) can be chained AFTER it — serializing the two writers to
   // eligibility_page so they never clobber each other. See handleQuestionsNext.
   const extractionOp = useRef<Promise<void> | null>(null);
+  // Set when doExtractAndSave's read/persist fails — checked synchronously after
+  // awaiting extractionOp (the React `extractFailed` state is stale in that closure).
+  const extractFailedRef = useRef(false);
 
   // Rehydrate from Supabase on mount so back-navigation doesn't show empty
   // fields for work the user already did.
@@ -138,9 +138,12 @@ export default function EligibilityPage() {
 
   // --- Per-document extraction, fired on drop ---
 
-  async function runI20Extraction(file: File): Promise<I20ExtractResponse> {
+  // Files are optional: any doc not passed as a live file is read back from
+  // Supabase Storage server-side (see resolveUploadedDoc), so a resuming user can
+  // re-read after changing just one document.
+  async function runI20Extraction(file: File | null): Promise<I20ExtractResponse> {
     const form = new FormData();
-    form.append("i20", file);
+    if (file) form.append("i20", file);
     const res = await fetch("/api/documents/extract/i20", { method: "POST", body: form });
     if (!res.ok) {
       const body = await res.json().catch(() => null);
@@ -149,11 +152,11 @@ export default function EligibilityPage() {
     return (await res.json()) as I20ExtractResponse;
   }
 
-  async function runI94Extraction(i94: File, travel: File): Promise<I94Extraction> {
+  async function runI94Extraction(i94: File | null, travel: File | null): Promise<I94Extraction> {
     const form = new FormData();
     form.append("taxYear", String(CURRENT_SUPPORTED_TAX_YEAR));
-    form.append("i94", i94);
-    form.append("travelHistory", travel);
+    if (i94) form.append("i94", i94);
+    if (travel) form.append("travelHistory", travel);
     const res = await fetch("/api/documents/extract/i94", { method: "POST", body: form });
     if (!res.ok) {
       const body = await res.json().catch(() => null);
@@ -162,34 +165,26 @@ export default function EligibilityPage() {
     return (await res.json()) as I94Extraction;
   }
 
-  // Kick off (or restart) a document's read and track its status. The `=== p`
-  // guards drop stale results if the file was replaced mid-flight.
+  // Prefetch a document's read the moment it's dropped, storing the in-flight
+  // promise in a ref so Continue can await it. Errors are swallowed here —
+  // doExtractAndSave re-runs on Continue and surfaces any failure there.
   function startI20(file: File) {
-    setI20Status("processing");
     const p = runI20Extraction(file);
     i20Extraction.current = p;
-    p.then(() => i20Extraction.current === p && setI20Status("done")).catch(
-      () => i20Extraction.current === p && setI20Status("error"),
-    );
+    p.catch(() => {});
   }
 
   function startI94(i94: File, travel: File) {
-    setI94Status("processing");
     const p = runI94Extraction(i94, travel);
     i94Extraction.current = p;
-    p.then(() => i94Extraction.current === p && setI94Status("done")).catch(
-      () => i94Extraction.current === p && setI94Status("error"),
-    );
+    p.catch(() => {});
   }
 
   function handleI20Change(file: File | null) {
     setI20File(file);
     setError(null);
     if (file) startI20(file);
-    else {
-      i20Extraction.current = null;
-      setI20Status("idle");
-    }
+    else i20Extraction.current = null;
   }
 
   function handleI94Change(file: File | null) {
@@ -198,20 +193,14 @@ export default function EligibilityPage() {
     // The I-94 read needs both the I-94 and the travel history, so it only fires
     // once both are present.
     if (file && travelHistoryFile) startI94(file, travelHistoryFile);
-    else {
-      i94Extraction.current = null;
-      setI94Status("idle");
-    }
+    else i94Extraction.current = null;
   }
 
   function handleTravelChange(file: File | null) {
     setTravelHistoryFile(file);
     setError(null);
     if (file && i94File) startI94(i94File, file);
-    else {
-      i94Extraction.current = null;
-      setI94Status("idle");
-    }
+    else i94Extraction.current = null;
   }
 
   // Reads both documents, computes the F-1 first-entry date, and persists
@@ -220,11 +209,18 @@ export default function EligibilityPage() {
   async function doExtractAndSave() {
     setError(null);
     setExtractFailed(false);
+    extractFailedRef.current = false;
     try {
-      const [i20Data, data] = await Promise.all([
-        i20Extraction.current!,
-        i94Extraction.current!,
-      ]);
+      // Reuse the prefetch already in flight when the full live set is present
+      // (the fresh-upload path). Otherwise re-read via the routes, which pull any
+      // document not re-uploaded this visit from storage (the resume/change path).
+      const i20Promise =
+        i20File && i20Extraction.current ? i20Extraction.current : runI20Extraction(i20File);
+      const i94Promise =
+        i94File && travelHistoryFile && i94Extraction.current
+          ? i94Extraction.current
+          : runI94Extraction(i94File, travelHistoryFile);
+      const [i20Data, data] = await Promise.all([i20Promise, i94Promise]);
 
       // Anchored on the first arrival on/after the I-20's earliest admission
       // date — NOT the earliest arrival overall, which could be a pre-F-1
@@ -253,24 +249,24 @@ export default function EligibilityPage() {
         return fetch("/api/documents/upload", { method: "POST", body: uploadForm });
       };
 
-      // Uploads write documents_upload and the draft writes eligibility_page —
-      // different columns from the identity/school writes below, so they're safe
-      // to run in parallel.
-      await Promise.all([
-        uploadFile("i94", i94File!),
-        uploadFile("travel_history", travelHistoryFile!),
-        uploadFile("i20", i20File!),
-        // Extracted eligibility inputs → eligibility_page draft, so the confirm
-        // step (after profile) can rehydrate them without re-reading the docs.
-        // Passport rides along here (not profile) to avoid racing the identity
-        // and school writes below.
-        saveEligibilityDraft({
-          visaClass: data.visaClass,
-          firstEntryDate,
-          passportNumber: data.passportNumber,
-          travelHistory: data.travelHistory,
-        }),
-      ]);
+      // Persist only the freshly-uploaded files (unchanged docs already live in
+      // storage). Serialized on purpose: the upload route read-modify-writes the
+      // documents_upload JSON column, so three parallel writers clobber each
+      // other — the lost-update race that made the I-94 name vanish on resume.
+      if (i94File) await uploadFile("i94", i94File);
+      if (travelHistoryFile) await uploadFile("travel_history", travelHistoryFile);
+      if (i20File) await uploadFile("i20", i20File);
+
+      // Extracted eligibility inputs → eligibility_page draft, so the confirm
+      // step (after profile) can rehydrate them without re-reading the docs.
+      // Passport rides along here (not profile) to avoid racing the identity and
+      // school writes below.
+      await saveEligibilityDraft({
+        visaClass: data.visaClass,
+        firstEntryDate,
+        passportNumber: data.passportNumber,
+        travelHistory: data.travelHistory,
+      });
 
       // These two BOTH read-modify-write the same profile_page JSON column, so
       // they MUST run sequentially. Firing them together (as before) let the
@@ -295,6 +291,7 @@ export default function EligibilityPage() {
     } catch (err) {
       setError(err instanceof Error ? err.message : "Extraction failed.");
       setExtractFailed(true);
+      extractFailedRef.current = true;
     }
   }
 
@@ -312,19 +309,11 @@ export default function EligibilityPage() {
       return;
     }
 
-    // A fresh upload means we re-read. The I-94 travel history and the I-20's
-    // admission date are read together to compute the F-1 first-entry date, so
-    // re-reading needs all three present as live files. After a resume (files
-    // gone from memory), that means re-uploading the set to change any one.
-    if (!i94File || !travelHistoryFile || !i20File) {
-      setError(
-        "To change a document, please re-upload all three so we can re-read them together.",
-      );
-      return;
-    }
+    // A fresh upload means we re-read. Any document NOT re-uploaded this visit is
+    // pulled from storage server-side (see the extract routes' resolveUploadedDoc
+    // fallback), so changing one document no longer requires re-uploading all
+    // three. doExtractAndSave assembles the full set (fresh + stored) and recomputes.
     setError(null);
-    if (!i20Extraction.current || i20Status === "error") startI20(i20File);
-    if (!i94Extraction.current || i94Status === "error") startI94(i94File, travelHistoryFile);
     setSubStep("questions");
     extractionOp.current = doExtractAndSave();
   }
@@ -333,7 +322,7 @@ export default function EligibilityPage() {
   // profile). Otherwise navigate to profile immediately and chain the answers
   // save AFTER the extraction op, so the two eligibility_page writers never
   // race; `eligibilityDraftReady` tells the confirm step everything has landed.
-  function handleQuestionsNext() {
+  async function handleQuestionsNext() {
     const unanswered = [
       hasGreenCard,
       appliedForGreenCard,
@@ -371,11 +360,18 @@ export default function EligibilityPage() {
       incomeOnlyInWashington: incomeOnlyInWashington === "yes",
       eligibilityDraftReady: true,
     };
-    (extractionOp.current ?? Promise.resolve())
-      .then(() => saveEligibilityDraft(answers))
-      .catch(() => {
-        /* extraction failed after we left; the confirm step surfaces it */
-      });
+
+    // Block until the document read + identity write have landed, so the profile
+    // page arrives pre-filled (name/DOB) instead of blank. The Continue button
+    // shows "Saving..." while this runs.
+    await (extractionOp.current ?? Promise.resolve());
+    if (extractFailedRef.current) {
+      setIsSubmitting(false);
+      setExtractFailed(true);
+      setError("We couldn't read your documents — please go back and re-upload them.");
+      return;
+    }
+    await saveEligibilityDraft(answers);
     router.push("/onboarding/profile");
   }
 
