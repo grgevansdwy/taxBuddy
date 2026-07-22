@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { parsePdfToMarkdown } from "@/lib/parsing/llamaParse";
 import { extractFromMarkdown } from "@/lib/ai/extractFromMarkdown";
+import { resolveUploadedDoc } from "@/lib/server/resolveUploadedDoc";
 
 // Nothing is persisted here — per the EXTRACT-then-CONFIRM principle, extracted
 // fields aren't written to the case file until the user confirms them via
@@ -17,23 +18,23 @@ export async function POST(request: Request) {
   }
 
   const form = await request.formData();
-  const i94File = form.get("i94");
-  const travelHistoryFile = form.get("travelHistory");
+  // Use freshly-uploaded files where provided, otherwise fall back to the copy
+  // already in Supabase Storage — so changing one document doesn't require
+  // re-uploading all of them.
+  const i94 = await resolveUploadedDoc(supabase, user.id, "i94", form.get("i94"));
+  const travelHistory = await resolveUploadedDoc(supabase, user.id, "travel_history", form.get("travelHistory"));
 
-  if (!(i94File instanceof File) || !(travelHistoryFile instanceof File)) {
+  if (!i94 || !travelHistory) {
     return NextResponse.json(
-      { error: "Both an I-94 and a travel history file are required." },
+      { error: "Both an I-94 and a travel history are required." },
       { status: 400 }
     );
   }
 
   try {
     const [i94Markdown, travelHistoryMarkdown] = await Promise.all([
-      parsePdfToMarkdown({ buffer: Buffer.from(await i94File.arrayBuffer()), fileName: i94File.name }),
-      parsePdfToMarkdown({
-        buffer: Buffer.from(await travelHistoryFile.arrayBuffer()),
-        fileName: travelHistoryFile.name,
-      }),
+      parsePdfToMarkdown({ buffer: i94.buffer, fileName: i94.fileName }),
+      parsePdfToMarkdown({ buffer: travelHistory.buffer, fileName: travelHistory.fileName }),
     ]);
 
     const extraction = await extractFromMarkdown("i94", [

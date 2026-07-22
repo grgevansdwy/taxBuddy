@@ -60,7 +60,9 @@ export function Consolidated1099Slot({
   const [divs, setDivs] = useState<F1099DIVData[]>(initialDivs);
   const [bs, setBs] = useState<F1099BData[]>(initialBs);
   const [das, setDas] = useState<F1099DAData[]>(initialDas);
-  const [names, setNames] = useState<string[]>([]);
+  // The filename of the statement currently parsing (shown as a transient chip);
+  // settled statements are shown grouped by payer instead — see below.
+  const [pendingName, setPendingName] = useState<string | null>(null);
   const [phase, setPhase] = useState<Phase>("upload");
   const [error, setError] = useState<string | null>(null);
   const [lastFound, setLastFound] = useState<string[] | null>(null);
@@ -91,7 +93,7 @@ export function Consolidated1099Slot({
     setError(null);
     setLastFound(null);
     // Show the filename chip instantly on select — don't wait for extraction.
-    setNames((prev) => [...prev, file.name]);
+    setPendingName(file.name);
     setPhase("processing");
     try {
       const uploadForm = new FormData();
@@ -149,10 +151,7 @@ export function Consolidated1099Slot({
 
       if (found.length === 0) {
         // Nothing usable in the doc — take the optimistic chip back down.
-        setNames((prev) => {
-          const idx = prev.lastIndexOf(file.name);
-          return idx < 0 ? prev : prev.filter((_, i) => i !== idx);
-        });
+        setPendingName(null);
         setError("Couldn't find an interest, dividend, broker-transaction, or digital-asset section on this document.");
         setPhase("upload");
         return;
@@ -169,41 +168,63 @@ export function Consolidated1099Slot({
       setDivs(nextDivs);
       setBs(nextBs);
       setDas(nextDas);
+      setPendingName(null);
       setLastFound(found);
       setPhase("upload");
     } catch (err) {
       // Roll back the chip we optimistically showed on select.
-      setNames((prev) => {
-        const idx = prev.lastIndexOf(file.name);
-        return idx < 0 ? prev : prev.filter((_, i) => i !== idx);
-      });
+      setPendingName(null);
       setError(err instanceof Error ? err.message : "Something went wrong.");
       setPhase("upload");
     }
   }
 
+  // Remove one uploaded statement and re-persist. A consolidated 1099 is from a
+  // single broker, so all of its sections share one payerName — filter every
+  // array by that payer and save back only the ones that changed.
+  async function handleRemoveStatement(index: number) {
+    const payer = statementPayers[index];
+    if (payer == null) return;
+    const nextInts = ints.filter((d) => d.payerName !== payer);
+    const nextDivs = divs.filter((d) => d.payerName !== payer);
+    const nextBs = bs.filter((d) => d.payerName !== payer);
+    const nextDas = das.filter((d) => d.payerName !== payer);
+    setInts(nextInts);
+    setDivs(nextDivs);
+    setBs(nextBs);
+    setDas(nextDas);
+    setLastFound(null);
+    try {
+      await Promise.all([
+        nextInts.length !== ints.length ? saveField("f1099ints", nextInts) : Promise.resolve(),
+        nextDivs.length !== divs.length ? saveField("f1099divs", nextDivs) : Promise.resolve(),
+        nextBs.length !== bs.length ? saveField("f1099bs", nextBs) : Promise.resolve(),
+        nextDas.length !== das.length ? saveField("f1099das", nextDas) : Promise.resolve(),
+      ]);
+    } catch {
+      setError("Couldn't remove that statement. Please refresh and try again.");
+    }
+  }
+
   const totalCount = ints.length + divs.length + bs.length + das.length;
-  const summary = [
-    ints.length > 0 && `${ints.length} interest`,
-    divs.length > 0 && `${divs.length} dividend`,
-    bs.length > 0 && `${bs.length} broker`,
-    das.length > 0 && `${das.length} digital asset`,
-  ]
-    .filter(Boolean)
-    .join(", ");
+  // One chip per statement, grouped by payer (a consolidated 1099 is from one
+  // broker) so both fresh and rehydrated statements are removable. The in-flight
+  // upload's filename is appended while it parses.
+  const statementPayers = Array.from(
+    new Set([...ints, ...divs, ...bs, ...das].map((d) => d.payerName)),
+  );
+  const displayNames =
+    phase === "processing" && pendingName ? [...statementPayers, pendingName] : statementPayers;
 
   return (
     <div className="space-y-1.5">
       <FileDropSlot
         label={totalCount > 0 ? "Add another 1099" : "1099 (Interest / Dividends / Broker / Digital Assets)"}
-        fileNames={names}
+        fileNames={displayNames}
         onChange={handleFile}
+        // Only removable while idle — the pending chip isn't a saved statement yet.
+        onRemove={phase === "upload" ? handleRemoveStatement : undefined}
       />
-      {names.length === 0 && totalCount > 0 && (
-        <p className="text-xs text-muted-foreground">
-          On file: {summary} document{totalCount === 1 ? "" : "s"}.
-        </p>
-      )}
       {lastFound && (
         <p className="text-xs text-foreground">Found and saved: {lastFound.join(", ")}.</p>
       )}

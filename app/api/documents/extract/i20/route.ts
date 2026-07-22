@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { parsePdfToMarkdown } from "@/lib/parsing/llamaParse";
 import { extractFromMarkdown } from "@/lib/ai/extractFromMarkdown";
+import { resolveUploadedDoc } from "@/lib/server/resolveUploadedDoc";
 import { lookupSchoolContactInfo } from "@/lib/ai/lookupSchoolContactInfo";
 import type { I20Extraction } from "@/lib/extraction/schemas/i20";
 import type { SchoolContactLookup } from "@/lib/ai/lookupSchoolContactInfo";
@@ -20,14 +21,15 @@ export async function POST(request: Request) {
   }
 
   const form = await request.formData();
-  const file = form.get("i20");
+  // Freshly-uploaded file if provided, otherwise the copy in Supabase Storage.
+  const doc = await resolveUploadedDoc(supabase, user.id, "i20", form.get("i20"));
 
-  if (!(file instanceof File)) {
+  if (!doc) {
     return NextResponse.json({ error: "An I-20 file is required." }, { status: 400 });
   }
 
   try {
-    const markdown = await parsePdfToMarkdown({ buffer: Buffer.from(await file.arrayBuffer()), fileName: file.name });
+    const markdown = await parsePdfToMarkdown({ buffer: doc.buffer, fileName: doc.fileName });
     const extraction = await extractFromMarkdown("i20", [{ title: "I-20", markdown }]);
 
     // The I-20 itself doesn't print the institution's address/phone or the

@@ -10,6 +10,7 @@ export function FileDropSlot({
   file,
   fileNames,
   onChange,
+  onRemove,
 }: {
   label: string;
   accept?: string;
@@ -18,6 +19,9 @@ export function FileDropSlot({
   file?: File | null;
   fileNames?: string[];
   onChange: (file: File | null) => void;
+  // When provided, each filename chip gets an "x" to remove that file (income
+  // slots that hold several — e.g. a duplicate W-2 the user wants to delete).
+  onRemove?: (index: number) => void;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -59,8 +63,23 @@ export function FileDropSlot({
       {names.length > 0 ? (
         <div className="mt-2 flex flex-wrap justify-center gap-1.5">
           {names.map((name, i) => (
-            <Badge key={`${name}-${i}`} variant="secondary">
+            <Badge key={`${name}-${i}`} variant="secondary" className="gap-1">
               {name}
+              {onRemove && (
+                <button
+                  type="button"
+                  aria-label={`Remove ${name}`}
+                  className="ml-0.5 leading-none text-muted-foreground hover:text-destructive"
+                  onClick={(e) => {
+                    // Don't let the click bubble to the drop zone (which opens
+                    // the file picker).
+                    e.stopPropagation();
+                    onRemove(i);
+                  }}
+                >
+                  ×
+                </button>
+              )}
             </Badge>
           ))}
         </div>

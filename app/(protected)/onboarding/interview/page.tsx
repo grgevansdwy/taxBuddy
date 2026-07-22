@@ -13,6 +13,11 @@ import { Consolidated1099Slot } from "@/components/onboarding/income-docs/consol
 import { Income1042SSlot } from "@/components/onboarding/income-docs/income-1042s-slot";
 import { CURRENT_SUPPORTED_TAX_YEAR } from "@/lib/config/taxYear";
 import { fetchFiling } from "@/lib/client/fetchFiling";
+import {
+  clearSessionFormDraft,
+  readSessionFormDraft,
+  useSessionFormDraft,
+} from "@/lib/client/useSessionFormDraft";
 import type {
   F1042SData,
   F1099BData,
@@ -28,6 +33,8 @@ type YesNo = "yes" | "no";
 // choose each answer themselves.
 type YesNoUnset = YesNo | "";
 type ScholarshipCoverage = InterviewAnswers["scholarshipCoverage"];
+
+const INTERVIEW_DRAFT_KEY = `onboarding:interview:${CURRENT_SUPPORTED_TAX_YEAR}`;
 
 export default function InterviewPage() {
   const router = useRouter();
@@ -68,6 +75,33 @@ export default function InterviewPage() {
   const [f1099Processing, setF1099Processing] = useState(false);
   const [isFiling, setIsFiling] = useState(false);
   const filedRef = useRef(false);
+
+  // Persist the answer fields to sessionStorage so back-nav restores them. The
+  // income-doc arrays aren't included — the slots already save those to the
+  // backend immediately on upload.
+  const draft = {
+    workedInUs,
+    onOPT,
+    scholarshipCoverage,
+    digitalAssets,
+    interestIncome,
+    dividendIncome,
+    soldAssets,
+    charitableContributions,
+  };
+  type InterviewDraft = typeof draft;
+  useSessionFormDraft(INTERVIEW_DRAFT_KEY, draft, !isHydrating);
+
+  function applyInterviewDraft(d: Partial<InterviewDraft>) {
+    if (d.workedInUs !== undefined) setWorkedInUs(d.workedInUs);
+    if (d.onOPT !== undefined) setOnOPT(d.onOPT);
+    if (d.scholarshipCoverage !== undefined) setScholarshipCoverage(d.scholarshipCoverage);
+    if (d.digitalAssets !== undefined) setDigitalAssets(d.digitalAssets);
+    if (d.interestIncome !== undefined) setInterestIncome(d.interestIncome);
+    if (d.dividendIncome !== undefined) setDividendIncome(d.dividendIncome);
+    if (d.soldAssets !== undefined) setSoldAssets(d.soldAssets);
+    if (d.charitableContributions !== undefined) setCharitableContributions(d.charitableContributions);
+  }
 
   const show1099 = interestIncome || dividendIncome || soldAssets;
   const has1099Data = f1099ints.length + f1099divs.length + f1099bs.length + f1099das.length > 0;
@@ -173,9 +207,15 @@ export default function InterviewPage() {
         setF1099bs(data.f1099bs ?? []);
         setF1099das(data.f1099das ?? []);
         setW2s(data.w2s ?? []);
+
+        // Overlay any unsaved draft from this tab (takes precedence over backend
+        // values) so back-navigation restores what the user last selected.
+        const savedDraft = readSessionFormDraft<Partial<InterviewDraft>>(INTERVIEW_DRAFT_KEY);
+        if (savedDraft) applyInterviewDraft(savedDraft);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Something went wrong."))
       .finally(() => setIsHydrating(false));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Save the interview (and compute the checklist) now — this doesn't depend on
@@ -232,6 +272,7 @@ export default function InterviewPage() {
       try {
         const res = await fetch("/api/documents/file", { method: "POST" });
         if (!res.ok) throw new Error("Couldn't finish filing — try again.");
+        clearSessionFormDraft(INTERVIEW_DRAFT_KEY);
         router.push("/dashboard");
       } catch (err) {
         setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -321,10 +362,6 @@ export default function InterviewPage() {
 
         <div className="space-y-2">
           <Label>Did you receive, sell, or exchange any digital assets (crypto) this year?</Label>
-          <p className="text-xs text-muted-foreground">
-            Required on every return regardless of amount — includes receiving, selling, trading, or being paid in
-            crypto. This is different from selling investments for a gain, which we&apos;ll ask about next.
-          </p>
           <RadioGroup value={digitalAssets} onValueChange={(v) => setDigitalAssets(v as YesNo)} className="flex gap-4">
             <label className="flex items-center gap-2 text-sm">
               <RadioGroupItem value="yes" /> Yes
@@ -337,10 +374,6 @@ export default function InterviewPage() {
 
         <div className="space-y-2">
           <Label>Did you earn any interest, dividends, or investment income in the US?</Label>
-          <p className="text-xs text-muted-foreground">
-            This is about income from investments, separate from the digital-assets question you already
-            answered — check any that apply and we&apos;ll request the matching tax form.
-          </p>
           <label className="flex items-center gap-2 text-sm">
             <Checkbox
               checked={interestIncome}
@@ -378,10 +411,7 @@ export default function InterviewPage() {
           {show1099 && (
             <div className="space-y-1.5 pt-2">
               <Label>Your 1099</Label>
-              <p className="text-xs text-muted-foreground">
-                Your bank/broker&apos;s combined statement works (INT/DIV/B sections together). Add more than
-                one if you have several.
-              </p>
+              <p className="text-xs text-muted-foreground">Add more than one if you have several.</p>
               <Consolidated1099Slot
                 initialInts={f1099ints}
                 initialDivs={f1099divs}

@@ -85,7 +85,7 @@ export function CharitableContributionCard({
       <Label htmlFor="charitable-contributions">
         Did you make any charitable contributions (cash or check) to a US charity this year?
       </Label>
-      <p className="text-xs text-muted-foreground">Enter 0 if none — this affects your itemized deduction.</p>
+      <p className="text-xs text-muted-foreground">Enter 0 if none.</p>
       <Input
         id="charitable-contributions"
         type="text"

@@ -18,7 +18,14 @@ import { CURRENT_SUPPORTED_TAX_YEAR } from "@/lib/config/taxYear";
 import { US_STATES } from "@/lib/config/usStates";
 import { COUNTRIES } from "@/lib/config/countries";
 import { fetchFiling } from "@/lib/client/fetchFiling";
+import {
+  clearSessionFormDraft,
+  readSessionFormDraft,
+  useSessionFormDraft,
+} from "@/lib/client/useSessionFormDraft";
 import type { Address, FilingStatus, ForeignAddress } from "@/lib/types";
+
+const PROFILE_DRAFT_KEY = `onboarding:profile:${CURRENT_SUPPORTED_TAX_YEAR}`;
 
 type YesNo = "yes" | "no";
 // "" = not yet answered; we no longer pre-select a default so the user has to
@@ -99,6 +106,54 @@ export default function ProfilePage() {
 
   const needsW7 = hasSSN === "no" && hasOrAppliedItin === "no";
 
+  // Persist typed input to sessionStorage so back-navigation restores it. SSN/
+  // ITIN stay client-side (never written to the server until Continue).
+  const draft = {
+    legalName,
+    dob,
+    citizenship,
+    usLine1,
+    usCity,
+    usState,
+    usPostalCode,
+    foreignLine1,
+    foreignPostalCode,
+    foreignCountry,
+    foreignState,
+    filingStatus,
+    hasSSN,
+    hasOrAppliedItin,
+    ssnOrItin,
+    priorReturnFiled,
+    priorReturnYear,
+    priorReturnFormChoice,
+    priorReturnFormOther,
+  };
+  type ProfileDraft = typeof draft;
+  useSessionFormDraft(PROFILE_DRAFT_KEY, draft, !isHydrating);
+
+  function applyDraft(d: Partial<ProfileDraft>) {
+    if (d.legalName !== undefined) setLegalName(d.legalName);
+    if (d.dob !== undefined) setDob(d.dob);
+    if (d.citizenship !== undefined) setCitizenship(d.citizenship);
+    if (d.usLine1 !== undefined) setUsLine1(d.usLine1);
+    if (d.usCity !== undefined) setUsCity(d.usCity);
+    if (d.usState !== undefined) setUsState(d.usState);
+    if (d.usPostalCode !== undefined) setUsPostalCode(d.usPostalCode);
+    if (d.foreignLine1 !== undefined) setForeignLine1(d.foreignLine1);
+    if (d.foreignPostalCode !== undefined) setForeignPostalCode(d.foreignPostalCode);
+    if (d.foreignCountry !== undefined) setForeignCountry(d.foreignCountry);
+    if (d.foreignState !== undefined) setForeignState(d.foreignState);
+    if (d.filingStatus !== undefined) setFilingStatus(d.filingStatus);
+    if (d.hasSSN !== undefined) setHasSSN(d.hasSSN);
+    if (d.hasOrAppliedItin !== undefined) setHasOrAppliedItin(d.hasOrAppliedItin);
+    if (d.ssnOrItin !== undefined) setSsnOrItin(d.ssnOrItin);
+    if (d.priorReturnFiled !== undefined) setPriorReturnFiled(d.priorReturnFiled);
+    if (d.priorReturnYear !== undefined) setPriorReturnYear(d.priorReturnYear);
+    if (d.priorReturnFormChoice !== undefined) setPriorReturnFormChoice(d.priorReturnFormChoice);
+    if (d.priorReturnFormOther !== undefined) setPriorReturnFormOther(d.priorReturnFormOther);
+  }
+
   // Rehydrate from Supabase on mount so back-navigation from a later step
   // doesn't show empty fields for work the user already did.
   useEffect(() => {
@@ -164,6 +219,11 @@ export default function ProfilePage() {
             }
           }
         }
+        // Overlay any unsaved draft from this tab so back-navigation restores
+        // what the user typed (takes precedence over backend values).
+        const savedDraft = readSessionFormDraft<Partial<ProfileDraft>>(PROFILE_DRAFT_KEY);
+        if (savedDraft) applyDraft(savedDraft);
+
         setIsHydrating(false);
 
         // If identity isn't saved yet (documents still reading), poll a few
@@ -195,6 +255,7 @@ export default function ProfilePage() {
     return () => {
       cancelled = true;
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   function validate(): FieldErrors {
@@ -296,6 +357,8 @@ export default function ProfilePage() {
         const body = await res.json().catch(() => null);
         throw new Error(body?.error ?? "Something went wrong.");
       }
+      // Submitted → the backend is now the source of truth; drop the local draft.
+      clearSessionFormDraft(PROFILE_DRAFT_KEY);
       router.push("/onboarding/confirm");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -513,7 +576,15 @@ export default function ProfilePage() {
           <Label>Have you filed a US tax return before?</Label>
           <RadioGroup
             value={priorReturnFiled}
-            onValueChange={(v) => setPriorReturnFiled(v as YesNo)}
+            onValueChange={(v) => {
+              const value = v as YesNo;
+              setPriorReturnFiled(value);
+              // Prefill the prior tax year (2024) on "yes" — but NOT the form
+              // type, which the user must still choose themselves.
+              if (value === "yes") {
+                setPriorReturnYear((prev) => prev || String(CURRENT_SUPPORTED_TAX_YEAR - 1));
+              }
+            }}
             className="flex gap-4"
           >
             <label className="flex items-center gap-2 text-sm">

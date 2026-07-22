@@ -21,7 +21,12 @@ export function W2Slot({
   onProcessingChange?: (processing: boolean) => void;
 }) {
   const [items, setItems] = useState<W2Data[]>(initialValue);
-  const [names, setNames] = useState<string[]>([]);
+  // Name chips stay index-aligned with `items`: rehydrated docs (no original
+  // filename) fall back to their employer name so they're still identifiable
+  // and removable.
+  const [names, setNames] = useState<string[]>(() =>
+    initialValue.map((w) => w.employerName || "W-2"),
+  );
   const [phase, setPhase] = useState<Phase>("upload");
   const [error, setError] = useState<string | null>(null);
 
@@ -94,18 +99,35 @@ export function W2Slot({
     }
   }
 
+  // Remove one uploaded W-2 (e.g. an accidental duplicate) and re-persist the
+  // remaining set. names and items are index-aligned when settled, so remove by
+  // index from both. Gated to the idle phase by the caller.
+  async function handleRemove(index: number) {
+    const nextItems = items.filter((_, i) => i !== index);
+    setItems(nextItems);
+    setNames((prev) => prev.filter((_, i) => i !== index));
+    try {
+      const res = await fetch("/api/documents/income", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ field: "w2s", value: nextItems }),
+      });
+      if (!res.ok) throw new Error();
+    } catch {
+      setError("Couldn't remove that document. Please refresh and try again.");
+    }
+  }
+
   return (
     <div className="space-y-1.5">
       <FileDropSlot
         label={items.length > 0 ? "Add another W-2" : "W-2"}
         fileNames={names}
         onChange={handleFile}
+        // Only removable while idle — during processing the pending chip isn't
+        // yet index-aligned with `items`.
+        onRemove={phase === "upload" ? handleRemove : undefined}
       />
-      {names.length === 0 && items.length > 0 && (
-        <p className="text-xs text-muted-foreground">
-          {items.length} W-2 document{items.length === 1 ? "" : "s"} on file.
-        </p>
-      )}
       {error && <p className="text-sm text-destructive">{error}</p>}
     </div>
   );
